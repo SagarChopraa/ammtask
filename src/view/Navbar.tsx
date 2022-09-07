@@ -4,8 +4,8 @@ import { Link as LinkR } from "react-router-dom";
 import Web3 from "web3";
 import { BustRouterAddress, BustRouterABI } from "../abi/bustRouterABI";
 import { BustPairAddress, BustPairABI } from "../abi/bustPairABI";
-import { wbnbAddress, wbnbABI } from "../abi/wbnbABI";
-import { bustFactoryAddress, bustFactoryABI } from "../abi/bustFactoryABI";
+import { wbnbAddress, wbnbABI } from "../abi/busd";
+import { bustFactoryAddress, bustFactoryABI } from "../abi/bust";
 import {useDispatch, useSelector} from "react-redux";
 import {setrouterabi} from '../logic/action/routerabi.action';
 import {setBustPairabi} from '../logic/action/bustpairabi.action';
@@ -132,7 +132,6 @@ const NavbarInternal = styled.div`
 `;
 
 const LogoDiv = styled.div`
-  width: 30%px;
   height: 65px;
   display: flex;
   flex-direction: row;
