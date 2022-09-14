@@ -4,7 +4,7 @@ import { Link as LinkR } from "react-router-dom";
 import Web3 from "web3";
 import { BustRouterAddress, BustRouterABI } from "../abi/bustRouterABI";
 import { BustPairAddress, BustPairABI } from "../abi/bustPairABI";
-import { wbnbAddress, wbnbABI } from "../abi/busd";
+import { wbnbAddress, wbnbABI } from "../abi/rest";
 import { bustFactoryAddress, bustFactoryABI } from "../abi/bust";
 import {useDispatch, useSelector} from "react-redux";
 import {setrouterabi} from '../logic/action/routerabi.action';
@@ -30,7 +30,6 @@ const Navbar = () => {
       if(openWalletList === false){
         if(typeof window.ethereum !== "undefined"){
           window.ethereum.request({method: 'eth_requestAccounts'}).then((accounts: any) => {
-              console.log(accounts);
               setAddress(accounts[0]);
               const add = accounts[0];
 
@@ -62,20 +61,6 @@ const Navbar = () => {
     }
 
   },[])
-
-  useEffect(() => {
-      const getWETH = async() => {
-        try{
-          const weth = await contract.methods.WETH().call();
-          console.log(weth);
-      }
-    catch(err){
-      console.log(err);
-    }
-  }
-
-      getWETH();
-  },[contract])
 
   return (
     <>

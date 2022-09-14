@@ -14,7 +14,7 @@ const Swap = () => {
             <FormContainerMain>
               <FormInputOne>
                 <FormInputOneHeading>
-                  <HeadingOne>BUSD</HeadingOne>
+                  <HeadingOne>REST</HeadingOne>
                   <HeadingOne>Balance: 0.0000</HeadingOne>
                 </FormInputOneHeading>
                 <InputField placeholder="0.00"></InputField>
@@ -34,8 +34,8 @@ const Swap = () => {
                 <SlippageDiv>Transaction deadline: 15 min</SlippageDiv>
               </SlipAndToleDiv>
               <BusdAndBustDiv>
-                <SlippageDiv>1BUSD = 2.490698 BUST</SlippageDiv>
-                <SlippageDiv>1BUST = 0.401490 BUSD</SlippageDiv>
+                <SlippageDiv>1REST = 2.490698 BUST</SlippageDiv>
+                <SlippageDiv>1BUST = 0.401490 REST</SlippageDiv>
               </BusdAndBustDiv>
               <SwapButtonDiv>
                 <SwapButton>Swap</SwapButton>

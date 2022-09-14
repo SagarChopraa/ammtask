@@ -9,7 +9,7 @@ const rootReducer = combineReducers(
   {
     RouterBust : routerReducer,
     BustPair : bustpairReducer,
-    BUSD : wbnbReducer,
+    REST : wbnbReducer,
     BUST : bustfactoryReducer,
     wallet : ethReducer
   }
