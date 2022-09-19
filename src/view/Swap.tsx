@@ -1,7 +1,110 @@
-import styled from "styled-components"
 import Navbar from "./Navbar"
+import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import styled from "styled-components"
+import Web3 from "web3";
+import BigNumber from "bignumber.js"
+import {BustRouterAddress} from '../abi/bustRouterABI';
+import { wbnbAddress } from "../abi/rest"; // REST
+import { bustFactoryAddress } from "../abi/bust";  //BUST
+const BUSTAddress = bustFactoryAddress;
+const RESTAddress = wbnbAddress;
 
 const Swap = () => {
+  const [balancerest, setbalancerest] = useState<string>('0.00');
+  const [balancebust, setbalancebust] = useState<string>('0.00');
+  const [amountIn , setAmountIn] = useState<string>("");
+  const [amountOut , setAmountOut] = useState<string>("");
+  const selector = useSelector((state:any) => state);
+  const { address } = selector.wallet;
+  const { REST } = selector;
+  const { BUST } = selector;
+  const { BustPair } = selector;
+  const { RouterBust } = selector;
+
+
+  useEffect(() => {
+
+    // Get Balance start
+
+    const getBalanceREST = async () => {
+      try {
+        const Rest = await REST.methods.balanceOf(address).call();
+        const FinalRest = weiToEth(Rest);
+        setbalancerest(FinalRest);
+      }
+      catch (err) {
+        console.log(err);
+      }
+    }
+
+    getBalanceREST();
+
+
+  }, [REST, address])
+
+  useEffect(() => {
+    const getBalanceBUST = async () => {
+      try {
+        const bust = await BUST.methods.balanceOf(address).call();
+        const Finalbust = weiToEth(bust);
+        setbalancebust(Finalbust);
+      }
+      catch (err) {
+        console.log(err);
+      }
+    }
+
+    getBalanceBUST();
+  }, [BUST, address]);
+
+  // Get Balance end
+
+    const getAmountIn = async (rest: any) => {
+      try{
+        if(rest === ""){
+          setAmountIn("");
+        }else{
+        const amountIn = await RouterBust.methods
+        .getAmountsIn(
+          ethToWei(rest), 
+          [RESTAddress, BUSTAddress])
+          .call();
+        console.log("amountIN",amountIn);
+        setAmountIn(weiToEth(amountIn[0]));
+        }
+      }catch (err) {
+        console.log(err);
+      }
+    }
+
+    const getAmountOut = async (bust: any) => {
+      try{
+        if(bust === ""){
+          setAmountOut("");
+        }else{
+        const amountOut = await RouterBust.methods
+        .getAmountsIn(
+          ethToWei(bust), 
+          [BUSTAddress, RESTAddress])
+          .call();
+        console.log("amountOut",amountOut);
+        setAmountOut(weiToEth(amountOut[0]));
+      }
+      }catch (err) {
+        console.log(err);
+      }
+    }
+
+  const weiToEth = (amount: string, decimals: number = 18) => {
+    return new BigNumber(amount).dividedBy(10 ** decimals).toFixed()
+  }
+
+  const ethToWei = (amount: string, decimals: number = 18) => {
+    return new BigNumber(amount).times(10 ** decimals).toFixed()
+  }
+
+
   return (
     <>
       <Navbar />
@@ -15,9 +118,9 @@ const Swap = () => {
               <FormInputOne>
                 <FormInputOneHeading>
                   <HeadingOne>REST</HeadingOne>
-                  <HeadingOne>Balance: 0.0000</HeadingOne>
+                  <HeadingOne>Balance: {balancerest}</HeadingOne>
                 </FormInputOneHeading>
-                <InputField placeholder="0.00"></InputField>
+                <InputField placeholder="0.00" value={amountIn ? amountIn : ''} onChange={(e) => { setAmountIn(e.target.value); getAmountOut(e.target.value)}}></InputField>
               </FormInputOne>
               <ArrowSignDiv>
                 <ArrowSign></ArrowSign>
@@ -25,9 +128,9 @@ const Swap = () => {
               <FormInputOne>
                 <FormInputOneHeading>
                   <HeadingOne>BUST</HeadingOne>
-                  <HeadingOne>Balance: 0.0000</HeadingOne>
+                  <HeadingOne>Balance: {balancebust}</HeadingOne>
                 </FormInputOneHeading>
-                <InputField placeholder="0.00"></InputField>
+                <InputField placeholder="0.00" value={amountOut ? amountOut : ''} onChange={(e) => { setAmountOut(e.target.value); getAmountIn(e.target.value)}}></InputField>
               </FormInputOne>
               <SlipAndToleDiv>
                 <SlippageDiv>Slippage tolerance: 0.5%</SlippageDiv>

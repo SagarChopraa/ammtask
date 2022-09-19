@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import styled from "styled-components"
 import Web3 from "web3";
+import BigNumber from "bignumber.js"
 import {BustRouterAddress} from '../../abi/bustRouterABI';
 import { wbnbAddress } from "../../abi/rest"; // REST
 import { bustFactoryAddress } from "../../abi/bust";  //BUST
@@ -10,6 +11,7 @@ const RESTAddress = wbnbAddress;
 
 const AddLiquidity = () => {
   const [rest, setRest] = useState<string>('');
+  const [oneRest, setOneRest] = useState<string>('');
   const [bust, setBust] = useState<string>('');
   const [balancerest, setbalancerest] = useState<string>('0.00');
   const [balancebust, setbalancebust] = useState<string>('0.00');
@@ -79,41 +81,56 @@ const AddLiquidity = () => {
   // Get Reserve End
 
   // Get Quote start
+  useEffect(() => {
+    const getQuoteOneRest = async () => {
+      try {
+          const amountA = await RouterBust.methods
+            .quote(1, reserve1, reserve0)
+            .call();
+            setOneRest(Web3.utils.fromWei(amountA));
+      } catch (err) {
+        console.log(err);
+      }
+    };
+  }, [])
+
+  const handleMinReceive = (val: any, slippage: number) => {
+    const slippageValue = new BigNumber(slippage).dividedBy(100)
+    const valueTobeRemoved = new BigNumber(val).multipliedBy(slippageValue)
+    const value = new BigNumber(val).minus(valueTobeRemoved)
+    return value
+  }
 
 
-  const getQuoteBusd = async (bust:any) => {
+  const getQuoteRest = async (bust: any) => {
     try {
       if (bust === "") {
         setRest("");
       } else {
-        const amountA = await RouterBust.methods.quote(bust, reserve1, reserve0).call();
-        const FinalAmountA = Web3.utils.fromWei(amountA);
-        console.log(FinalAmountA);
-        const slippage = amountA * 0.5 / 100;
-        console.log(slippage);
-        console.log(amountA);
-        setRest(FinalAmountA);
+        const amountA = await RouterBust.methods
+          .quote(Web3.utils.toWei(bust), reserve0, reserve1)
+          .call();
+          setRest(Web3.utils.fromWei(amountA));
       }
     } catch (err) {
       console.log(err);
     }
-  }
+  };
 
-  const getQuoteBust = async (busd:any) => {
+  const getQuoteBust = async (rest: any) => {
     try {
-    if(busd === "") {
-        setBust('');
-    }else{
-      const amountB = await RouterBust.methods.quote(busd, reserve0, reserve1).call();
-      console.log("kjhgv", amountB);
-      setBust(amountB);
-    }
+      if (rest === "") {
+        setBust("");
+      } else {
+        const amountB = await RouterBust.methods
+          .quote(Web3.utils.toWei(rest), reserve1, reserve0)
+          .call();
+          setBust(Web3.utils.fromWei(amountB));
+      }
     } catch (err) {
       console.log(err);
     }
-  }
-
-
+  };
 
   // get quote end
 
@@ -122,7 +139,7 @@ const AddLiquidity = () => {
 
   const approveREST = async () => {
     try {
-      const approvebusd = await REST.methods.approve(BustRouterAddress, rest).send({ from: address });
+      const approvebusd = await REST.methods.approve(BustRouterAddress, Web3.utils.toWei(rest)).send({ from: address });
     } catch (err) {
       console.log(err);
     }
@@ -130,7 +147,7 @@ const AddLiquidity = () => {
 
   const approveBUST = async () => {
     try {
-      const approvebust = await BUST.methods.approve(BustRouterAddress, bust).send({ from: address });
+      const approvebust = await BUST.methods.approve(BustRouterAddress, Web3.utils.toWei(bust)).send({ from: address });
     } catch (err) {
       console.log(err);
     }
@@ -143,7 +160,24 @@ const AddLiquidity = () => {
 
   const addLiquidity = async () => {
     try {
-      const addliquidity = await RouterBust.methods.addLiquidity(RESTAddress, BUSTAddress, rest, bust, rest, bust, address, 150000).send({ from: address });
+      console.log("addliquidity", rest, bust);
+      const aMin = handleMinReceive( Web3.utils.toWei(rest), 0.5);
+      const bMin = handleMinReceive( Web3.utils.toWei(bust), 0.5);
+      console.log("deadline", aMin.toString(), bMin.toString());
+      const deadline = Date.now() + 900;
+      console.log("deadline end", deadline);
+      const addliquidity = await RouterBust.methods
+      .addLiquidity(
+        RESTAddress, 
+        BUSTAddress, 
+        Web3.utils.toWei(rest), 
+        Web3.utils.toWei(bust), 
+        aMin.toFixed(0), 
+        bMin.toFixed(0), 
+        address, 
+        deadline
+        )
+      .send({ from: address });
     } catch (err) {
       console.log(err);
     }
@@ -152,10 +186,10 @@ const AddLiquidity = () => {
 
   // ADD liquidity end
 
-  function handleAddLiquidity() {
-    approveREST();
-    approveBUST();
-    addLiquidity()
+ const handleAddLiquidity= async () => {
+    await approveREST();
+    await approveBUST();        
+    await addLiquidity()
   }
 
   return (
@@ -175,7 +209,7 @@ const AddLiquidity = () => {
                   <HeadingOne>BUST</HeadingOne>
                   <HeadingOne>Balance: {balancebust}</HeadingOne>
               </FormInputOneHeading>
-              <InputField placeholder="0.00" value={bust ? bust : ''} onChange={(e) => { setBust(e.target.value); getQuoteBusd(e.target.value) }}></InputField>
+              <InputField placeholder="0.00" value={bust ? bust : ''} onChange={(e) => { setBust(e.target.value); getQuoteRest(e.target.value) }}></InputField>
           </FormInputOne>
           <SlipAndToleDiv>
               <SlippageDiv>Slippage tolerance: 0.5%</SlippageDiv>
@@ -183,7 +217,7 @@ const AddLiquidity = () => {
           </SlipAndToleDiv>
           <BusdAndBustDiv>
               <SlippageDiv>1REST = 2.490698 BUST</SlippageDiv>
-              <SlippageDiv>1BUST = 0.401490 REST</SlippageDiv>
+              <SlippageDiv>1BUST = {oneRest} REST</SlippageDiv>
           </BusdAndBustDiv>
           <SwapButtonDiv>
               <SwapButton onClick={handleAddLiquidity}>Supply</SwapButton>
