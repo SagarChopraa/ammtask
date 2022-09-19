@@ -139,7 +139,15 @@ const AddLiquidity = () => {
 
   const approveREST = async () => {
     try {
-      const approvebusd = await REST.methods.approve(BustRouterAddress, Web3.utils.toWei(rest)).send({ from: address });
+      const approvebusd = await REST.methods.approve(BustRouterAddress, Web3.utils.toWei(rest))
+      .send({ from: address })
+      .on("transactionHash", (hash: any) => {
+        alert(hash)
+      }).on("receipt", (receipt: any) => {
+        alert("REST Approved Successfully")
+      }).on("error", (error: any, receipt: any) => {
+        alert("swap failed")
+      });
     } catch (err) {
       console.log(err);
     }
@@ -147,7 +155,15 @@ const AddLiquidity = () => {
 
   const approveBUST = async () => {
     try {
-      const approvebust = await BUST.methods.approve(BustRouterAddress, Web3.utils.toWei(bust)).send({ from: address });
+      const approvebust = await BUST.methods.approve(BustRouterAddress, Web3.utils.toWei(bust))
+      .send({ from: address })
+      .on("transactionHash", (hash: any) => {
+        alert(hash)
+      }).on("receipt", (receipt: any) => {
+        alert("BUST Approved Successfully")
+      }).on("error", (error: any, receipt: any) => {
+        alert("swap failed")
+      });
     } catch (err) {
       console.log(err);
     }
@@ -177,10 +193,17 @@ const AddLiquidity = () => {
         address, 
         deadline
         )
-      .send({ from: address });
-    } catch (err) {
-      console.log(err);
-    }
+      .send({ from: address })
+      .on("transactionHash", (hash: any) => {
+        alert(hash)
+      }).on("receipt", (receipt: any) => {
+        alert("Liquidity Add Successfully")
+      }).on("error", (error: any, receipt: any) => {
+        alert("swap failed")
+      });
+      } catch (err) {
+        console.log(err);
+      }
   }
 
 

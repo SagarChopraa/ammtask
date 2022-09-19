@@ -15,6 +15,7 @@ const Swap = () => {
   const [balancebust, setbalancebust] = useState<string>('0.00');
   const [amountIn , setAmountIn] = useState<string>("");
   const [amountOut , setAmountOut] = useState<string>("");
+  const [input, setInput] = useState('');
   const selector = useSelector((state:any) => state);
   const { address } = selector.wallet;
   const { REST } = selector;
@@ -96,6 +97,39 @@ const Swap = () => {
       }
     }
 
+    const handleMinReceive = (val: any, slippage: number) => {
+      const slippageValue = new BigNumber(slippage).dividedBy(100)
+      const valueTobeRemoved = new BigNumber(val).multipliedBy(slippageValue)
+      const value = new BigNumber(val).minus(valueTobeRemoved)
+      return value
+    }
+
+    const swapExactTokensForTokens = async () => {
+      try{
+        console.log("run");
+        const amountOutMin = handleMinReceive( Web3.utils.toWei(amountOut), 0.5);
+        const deadline = Date.now() + 900;
+        const ExactTokensForTokens = await RouterBust.methods
+        .swapExactTokensForTokens(
+          ethToWei(amountIn),
+          amountOutMin.toFixed(0),
+          [RESTAddress, BUSTAddress],
+          address,
+          deadline
+        )
+        .send({from: address})
+        .on("transactionHash", (hash: any) => {
+            alert(hash)
+        }).on("receipt", (receipt: any) => {
+            alert("swap successfull")
+        }).on("error", (error: any, receipt: any) => {
+            alert("swap failed")
+        });
+        }catch(err) {
+          console.log(err);
+        }
+      }
+
   const weiToEth = (amount: string, decimals: number = 18) => {
     return new BigNumber(amount).dividedBy(10 ** decimals).toFixed()
   }
@@ -120,7 +154,8 @@ const Swap = () => {
                   <HeadingOne>REST</HeadingOne>
                   <HeadingOne>Balance: {balancerest}</HeadingOne>
                 </FormInputOneHeading>
-                <InputField placeholder="0.00" value={amountIn ? amountIn : ''} onChange={(e) => { setAmountIn(e.target.value); getAmountOut(e.target.value)}}></InputField>
+                <InputField placeholder="0.00" value={amountIn ? amountIn : ''} 
+                onChange={(e) => { setAmountIn(e.target.value); getAmountOut(e.target.value); setInput(e.target.value)}}></InputField>
               </FormInputOne>
               <ArrowSignDiv>
                 <ArrowSign></ArrowSign>
@@ -130,7 +165,8 @@ const Swap = () => {
                   <HeadingOne>BUST</HeadingOne>
                   <HeadingOne>Balance: {balancebust}</HeadingOne>
                 </FormInputOneHeading>
-                <InputField placeholder="0.00" value={amountOut ? amountOut : ''} onChange={(e) => { setAmountOut(e.target.value); getAmountIn(e.target.value)}}></InputField>
+                <InputField placeholder="0.00" value={amountOut ? amountOut : ''} 
+                onChange={(e) => { setAmountOut(e.target.value); getAmountIn(e.target.value) }}></InputField>
               </FormInputOne>
               <SlipAndToleDiv>
                 <SlippageDiv>Slippage tolerance: 0.5%</SlippageDiv>
@@ -141,7 +177,7 @@ const Swap = () => {
                 <SlippageDiv>1BUST = 0.401490 REST</SlippageDiv>
               </BusdAndBustDiv>
               <SwapButtonDiv>
-                <SwapButton>Swap</SwapButton>
+                <SwapButton onClick={swapExactTokensForTokens}>Swap</SwapButton>
               </SwapButtonDiv>
             </FormContainerMain>
           </SwapInterDiv>
@@ -273,8 +309,9 @@ const SwapButton = styled.button`
     opacity: 0.5;
     cursor: pointer;
     box-shadow: none;
-    background-color: rgb(255, 104, 113);
+    background-color: rgb(236, 6, 21);
     border: 1px solid rgb(255, 104, 113);
     margin: 10px;
+    color: #FFFFFF;
 `;
 
