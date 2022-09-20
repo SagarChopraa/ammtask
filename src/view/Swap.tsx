@@ -5,140 +5,171 @@ import styled from "styled-components"
 import Web3 from "web3";
 import BigNumber from "bignumber.js"
 import {BustRouterAddress} from '../abi/bustRouterABI';
+import { Spinner } from "../logic/Spinner";
 import { wbnbAddress } from "../abi/rest"; // REST
 import { bustFactoryAddress } from "../abi/bust";  //BUST
+import { convertToMax, convertToMin, ethToWei, weiToEth } from "../logic/conversion";
 const BUSTAddress = bustFactoryAddress;
 const RESTAddress = wbnbAddress;
 
 const Swap = () => {
-  const [balancerest, setbalancerest] = useState<string>('0.00');
-  const [balancebust, setbalancebust] = useState<string>('0.00');
-  const [amountIn , setAmountIn] = useState<string>("");
-  const [amountOut , setAmountOut] = useState<string>("");
-  const [input, setInput] = useState('');
-  const selector = useSelector((state:any) => state);
+  const selector = useSelector((state: any) => state);
+  const { RouterBust, REST, BUST, BustPair } = selector;
   const { address } = selector.wallet;
-  const { REST } = selector;
-  const { BUST } = selector;
-  const { BustPair } = selector;
-  const { RouterBust } = selector;
-
-
-  useEffect(() => {
-
-    // Get Balance start
-
-    const getBalanceREST = async () => {
+  const [loading, setLoading] = useState<any>(false);
+  const [rustBalance, setRustBalance] = useState("0.00");
+  const [bustBalance, setBustBalance] = useState("0.00");
+  const [addLiquidityLoading, setAddLiquidityLoading] = useState(false);
+  const [amountA, setAmountA] = useState<any>()
+  const [amountB, setAmountB] = useState<any>()
+  const [type, setType] = useState(0)
+  const [swapType, setSwapType] = useState(true)
+  const RESTAddress = wbnbAddress;
+  const BUSTAddress = bustFactoryAddress;
+  const RestToBust = [RESTAddress, BUSTAddress];
+  const BustToRest = [BUSTAddress, RESTAddress];
+  const [routerAddress, setRouterAddress] = useState<any>(RestToBust)
+  /** function to get balance of tokens */
+    const getTokenBalance = async () => {
       try {
         const Rest = await REST.methods.balanceOf(address).call();
-        const FinalRest = weiToEth(Rest);
-        setbalancerest(FinalRest);
-      }
-      catch (err) {
+        setRustBalance(weiToEth(Rest, 18));
+        const bust = await BUST.methods.balanceOf(address).call();
+        setBustBalance(weiToEth(bust, 18));
+      } catch (err) {
         console.log(err);
       }
+    };
+  
+  const handleChangeRouter = () => {
+    setSwapType(!swapType)
+    if(!swapType){
+    setRouterAddress(RestToBust)
+    } else {
+      setRouterAddress(BustToRest)
     }
+  }
 
-    getBalanceREST();
+  const handleInputOne = async (input:any) =>{
+    setAmountA(input);
+    const result = await RouterBust.methods
+    .getAmountsOut(ethToWei(input, 18),routerAddress ) //RestToBust
+    .call();
+    setAmountB(weiToEth(result[1],18))
+    setType(1)
+  }
 
+  const approveREST = async () => {
+    try {
+      const approvebusd = await REST.methods.approve(BustRouterAddress, Web3.utils.toWei(amountA))
+      .send({ from: address })
+      .on("transactionHash", (hash: any) => {
+        alert(hash)
+      }).on("receipt", (receipt: any) => {
+        alert("REST Approved Successfully")
+      }).on("error", (error: any, receipt: any) => {
+        alert("swap failed")
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  }
 
-  }, [REST, address])
+  const maxAllowance = new BigNumber(2).pow(256).minus(1);
+
+  const approveBUST = async () => {
+    try {
+      const approvebust = await BUST.methods.approve(BustRouterAddress, maxAllowance)
+      .send({ from: address })
+      .on("transactionHash", (hash: any) => {
+        alert(hash)
+      }).on("receipt", (receipt: any) => {
+        alert("BUST Approved Successfully")
+      }).on("error", (error: any, receipt: any) => {
+        alert("swap failed")
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  const handleInputTwo = async (input:any) =>{
+    setAmountB(input);
+    const result = await RouterBust.methods
+    .getAmountsIn(ethToWei(input, 18),routerAddress ) //RestToBust
+    .call();
+    setAmountA(weiToEth(result[0],18))
+    setType(2)
+  }
+
+  const swapExactTokensForTokens = async () => {
+    try{
+      setLoading(true);
+      const amountOutMin = convertToMin(amountB);
+      const deadline = Date.now() + 900;
+      const ExactTokensForTokens = await RouterBust.methods
+      .swapExactTokensForTokens(
+        ethToWei(amountA, 18),
+        amountOutMin,
+        routerAddress, //RestToBust
+        address,
+        deadline
+      )
+      .send({from: address})
+      .on("receipt", (receipt: any) => {
+          setAmountA("");
+          setAmountB("");
+          alert("swapExactTokensForTokens successfull")
+      }).on("error", (error: any, receipt: any) => {
+          setAmountA("");
+          setAmountB("");
+          alert("swapExactTokensForTokens failed")
+      });
+      setLoading(false);
+      }catch(err) {
+        console.log(err);
+    }
+  }
+
+  const swapTokensForExactTokens = async () => {
+    try{
+      setLoading(true);
+      const amountInMax = convertToMax(amountA);
+      const deadline = Date.now() + 900;
+      const ExactTokensForTokens = await RouterBust.methods
+      .swapTokensForExactTokens(
+        ethToWei(amountB, 18),
+        amountInMax,
+        routerAddress, //RestToBust
+        address,
+        deadline
+      )
+      .send({from: address})
+      .on("receipt", (receipt: any) => {
+          setAmountA("");
+          setAmountB("");
+          alert("swapTokensForExactTokens Success")
+      }).on("error", (error: any, receipt: any) => {
+          setAmountA("");
+          setAmountB("");
+          alert("swapTokensForExactTokens failed")
+      });
+      setLoading(false);
+      }catch(err) {
+        console.log(err);
+    }
+  }
+  const handleSwap = () =>{
+    if(type === 1){
+      swapExactTokensForTokens()
+    } else {
+      swapTokensForExactTokens()
+    }
+  }
 
   useEffect(() => {
-    const getBalanceBUST = async () => {
-      try {
-        const bust = await BUST.methods.balanceOf(address).call();
-        const Finalbust = weiToEth(bust);
-        setbalancebust(Finalbust);
-      }
-      catch (err) {
-        console.log(err);
-      }
-    }
-
-    getBalanceBUST();
-  }, [BUST, address]);
-
-  // Get Balance end
-
-    const getAmountIn = async (rest: any) => {
-      try{
-        if(rest === ""){
-          setAmountIn("");
-        }else{
-        const amountIn = await RouterBust.methods
-        .getAmountsIn(
-          ethToWei(rest), 
-          [RESTAddress, BUSTAddress])
-          .call();
-        console.log("amountIN",amountIn);
-        setAmountIn(weiToEth(amountIn[0]));
-        }
-      }catch (err) {
-        console.log(err);
-      }
-    }
-
-    const getAmountOut = async (bust: any) => {
-      try{
-        if(bust === ""){
-          setAmountOut("");
-        }else{
-        const amountOut = await RouterBust.methods
-        .getAmountsIn(
-          ethToWei(bust), 
-          [BUSTAddress, RESTAddress])
-          .call();
-        console.log("amountOut",amountOut);
-        setAmountOut(weiToEth(amountOut[0]));
-      }
-      }catch (err) {
-        console.log(err);
-      }
-    }
-
-    const handleMinReceive = (val: any, slippage: number) => {
-      const slippageValue = new BigNumber(slippage).dividedBy(100)
-      const valueTobeRemoved = new BigNumber(val).multipliedBy(slippageValue)
-      const value = new BigNumber(val).minus(valueTobeRemoved)
-      return value
-    }
-
-    const swapExactTokensForTokens = async () => {
-      try{
-        console.log("run");
-        const amountOutMin = handleMinReceive( Web3.utils.toWei(amountOut), 0.5);
-        const deadline = Date.now() + 900;
-        const ExactTokensForTokens = await RouterBust.methods
-        .swapExactTokensForTokens(
-          ethToWei(amountIn),
-          amountOutMin.toFixed(0),
-          [RESTAddress, BUSTAddress],
-          address,
-          deadline
-        )
-        .send({from: address})
-        .on("transactionHash", (hash: any) => {
-            alert(hash)
-        }).on("receipt", (receipt: any) => {
-            alert("swap successfull")
-        }).on("error", (error: any, receipt: any) => {
-            alert("swap failed")
-        });
-        }catch(err) {
-          console.log(err);
-        }
-      }
-
-  const weiToEth = (amount: string, decimals: number = 18) => {
-    return new BigNumber(amount).dividedBy(10 ** decimals).toFixed()
-  }
-
-  const ethToWei = (amount: string, decimals: number = 18) => {
-    return new BigNumber(amount).times(10 ** decimals).toFixed()
-  }
-
-
+    getTokenBalance();
+  }, [REST, BUST, address, addLiquidityLoading, loading]);
   return (
     <>
       <Navbar />
@@ -151,41 +182,41 @@ const Swap = () => {
             <FormContainerMain>
               <FormInputOne>
                 <FormInputOneHeading>
-                  <HeadingOne>REST</HeadingOne>
-                  <HeadingOne>Balance: {balancerest}</HeadingOne>
+                  <HeadingOne>{swapType === true? 'REST' :'BUST'} </HeadingOne>
+                  <HeadingOne>Balance:{swapType === true? parseFloat(rustBalance).toFixed(2): parseFloat(bustBalance).toFixed(2) }</HeadingOne>
                 </FormInputOneHeading>
-                <InputField placeholder="0.00" value={amountIn ? amountIn : ''} 
-                onChange={(e) => { setAmountIn(e.target.value); getAmountOut(e.target.value); setInput(e.target.value)}}></InputField>
+                <InputField placeholder="0.00" value={amountA} onChange={(e) => handleInputOne(e.target.value)}></InputField>
               </FormInputOne>
-              <ArrowSignDiv>
+              <ArrowSignDiv onClick ={() => handleChangeRouter() }>
                 <ArrowSign></ArrowSign>
               </ArrowSignDiv>
               <FormInputOne>
                 <FormInputOneHeading>
-                  <HeadingOne>BUST</HeadingOne>
-                  <HeadingOne>Balance: {balancebust}</HeadingOne>
+                  <HeadingOne>{swapType === true? 'BUST' :'REST'}</HeadingOne>
+                  <HeadingOne>Balance: {swapType === true? parseFloat(bustBalance).toFixed(2) : parseFloat(rustBalance).toFixed(2)}</HeadingOne>
                 </FormInputOneHeading>
-                <InputField placeholder="0.00" value={amountOut ? amountOut : ''} 
-                onChange={(e) => { setAmountOut(e.target.value); getAmountIn(e.target.value) }}></InputField>
+                <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
               </FormInputOne>
               <SlipAndToleDiv>
                 <SlippageDiv>Slippage tolerance: 0.5%</SlippageDiv>
                 <SlippageDiv>Transaction deadline: 15 min</SlippageDiv>
               </SlipAndToleDiv>
               <BusdAndBustDiv>
-                <SlippageDiv>1REST = 2.490698 BUST</SlippageDiv>
-                <SlippageDiv>1BUST = 0.401490 REST</SlippageDiv>
+                <SlippageDiv>1BUSD = 2.490698 BUST</SlippageDiv>
+                <SlippageDiv>1BUST = 0.401490 BUSD</SlippageDiv>
               </BusdAndBustDiv>
               <SwapButtonDiv>
-                <SwapButton onClick={swapExactTokensForTokens}>Swap</SwapButton>
+                <SwapButton onClick={() => handleSwap()}>{loading ? <Spinner/> : "Swap"}</SwapButton>
               </SwapButtonDiv>
             </FormContainerMain>
           </SwapInterDiv>
         </SwapOuterDiv>
       </SwapContainerMain>
     </>
-  )
-}
+  );
+};
+
+
 
 export default Swap
 

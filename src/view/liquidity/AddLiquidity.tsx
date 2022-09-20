@@ -4,8 +4,11 @@ import styled from "styled-components"
 import Web3 from "web3";
 import BigNumber from "bignumber.js"
 import {BustRouterAddress} from '../../abi/bustRouterABI';
+import { ToastContainer, toast } from 'react-toastify';
+import { Spinner } from "../../logic/Spinner";
 import { wbnbAddress } from "../../abi/rest"; // REST
 import { bustFactoryAddress } from "../../abi/bust";  //BUST
+import { weiToEth } from "../../logic/conversion";
 const BUSTAddress = bustFactoryAddress;
 const RESTAddress = wbnbAddress;
 
@@ -17,12 +20,16 @@ const AddLiquidity = () => {
   const [balancebust, setbalancebust] = useState<string>('0.00');
   const [reserve0, setReserve0] = useState();
   const [reserve1, setReserve1] = useState();
+  const [isApprovedRest, setIsApprovedRest] = useState<boolean>(false);
+  const [isApprovedBust, setIsApprovedBust] = useState<boolean>(false);
+  const [loading, setLoading] = useState<any>(false);
   const selector = useSelector((state:any) => state);
   const { address } = selector.wallet;
   const { REST } = selector;
   const { BUST } = selector;
   const { BustPair } = selector;
   const { RouterBust } = selector;
+  const success = () => toast('liquidity successfull');
 
   useEffect(() => {
 
@@ -42,7 +49,7 @@ const AddLiquidity = () => {
     getBalanceREST();
 
 
-  }, [REST, address])
+  }, [REST, address, loading])
 
   useEffect(() => {
     const getBalanceBUST = async () => {
@@ -57,7 +64,7 @@ const AddLiquidity = () => {
     }
 
     getBalanceBUST();
-  }, [BUST, address]);
+  }, [BUST, address, loading]);
 
   // Get Balance end
 
@@ -137,9 +144,42 @@ const AddLiquidity = () => {
 
   // approve start
 
+  const maxAllowance = new BigNumber(2).pow(256).minus(1);
+
+  const getAllowances = async (rest: any = "", bust: any = "") => {
+    try {
+      const allowanceA = await REST.methods
+        .allowance(address, BustRouterAddress)
+        .call();
+      const allowanceB = await BUST.methods
+        .allowance(address, BustRouterAddress)
+        .call();
+      if (rest !== "") {
+        if (parseFloat(weiToEth(allowanceA, 18)) > parseFloat(rest)) {
+          setIsApprovedRest(true);
+        } else {
+          setIsApprovedRest(false);
+        }
+      }
+      if (bust !== "") {
+        if (parseFloat(weiToEth(allowanceB, 18)) > parseFloat(bust)) {
+          setIsApprovedBust(true);
+        } else {
+          setIsApprovedBust(false);
+        }
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  
+  useEffect(() => {
+    getAllowances(rest, bust);
+  }, [rest, bust]);
+
   const approveREST = async () => {
     try {
-      const approvebusd = await REST.methods.approve(BustRouterAddress, Web3.utils.toWei(rest))
+      const approvebusd = await REST.methods.approve(BustRouterAddress, maxAllowance)
       .send({ from: address })
       .on("transactionHash", (hash: any) => {
         alert(hash)
@@ -155,7 +195,7 @@ const AddLiquidity = () => {
 
   const approveBUST = async () => {
     try {
-      const approvebust = await BUST.methods.approve(BustRouterAddress, Web3.utils.toWei(bust))
+      const approvebust = await BUST.methods.approve(BustRouterAddress, maxAllowance)
       .send({ from: address })
       .on("transactionHash", (hash: any) => {
         alert(hash)
@@ -176,31 +216,40 @@ const AddLiquidity = () => {
 
   const addLiquidity = async () => {
     try {
-      console.log("addliquidity", rest, bust);
-      const aMin = handleMinReceive( Web3.utils.toWei(rest), 0.5);
-      const bMin = handleMinReceive( Web3.utils.toWei(bust), 0.5);
-      console.log("deadline", aMin.toString(), bMin.toString());
-      const deadline = Date.now() + 900;
-      console.log("deadline end", deadline);
-      const addliquidity = await RouterBust.methods
-      .addLiquidity(
-        RESTAddress, 
-        BUSTAddress, 
-        Web3.utils.toWei(rest), 
-        Web3.utils.toWei(bust), 
-        aMin.toFixed(0), 
-        bMin.toFixed(0), 
-        address, 
-        deadline
-        )
-      .send({ from: address })
-      .on("transactionHash", (hash: any) => {
-        alert(hash)
-      }).on("receipt", (receipt: any) => {
-        alert("Liquidity Add Successfully")
-      }).on("error", (error: any, receipt: any) => {
-        alert("swap failed")
-      });
+        setLoading(true);
+        if(isApprovedRest && isApprovedBust){
+        console.log("addliquidity", rest, bust);
+        const aMin = handleMinReceive( Web3.utils.toWei(rest), 0.5);
+        const bMin = handleMinReceive( Web3.utils.toWei(bust), 0.5);
+        console.log("deadline", aMin.toString(), bMin.toString());
+        const deadline = Date.now() + 900;
+        console.log("deadline end", deadline);
+        const addliquidity = await RouterBust.methods
+        .addLiquidity(
+          RESTAddress, 
+          BUSTAddress, 
+          Web3.utils.toWei(rest), 
+          Web3.utils.toWei(bust), 
+          aMin.toFixed(0), 
+          bMin.toFixed(0), 
+          address, 
+          deadline
+          )
+        .send({ from: address })
+        .on("receipt", (receipt: any) => {
+          setBust("");
+          setRest("");
+          success();
+        }).on("error", (error: any, receipt: any) => {
+          setBust("");
+          setRest("");
+          alert("Liquidity failed")
+        });
+        }else{
+          await approveREST();
+          await approveBUST();   
+        }
+        setLoading(false);
       } catch (err) {
         console.log(err);
       }
@@ -210,13 +259,14 @@ const AddLiquidity = () => {
   // ADD liquidity end
 
  const handleAddLiquidity= async () => {
-    await approveREST();
-    await approveBUST();        
+    // await approveREST();
+    // await approveBUST();        
     await addLiquidity()
   }
 
   return (
       <FormContainerMain>
+        <ToastContainer />
           <FormInputOne>
               <FormInputOneHeading>
                   <HeadingOne>REST</HeadingOne>
@@ -243,7 +293,7 @@ const AddLiquidity = () => {
               <SlippageDiv>1BUST = {oneRest} REST</SlippageDiv>
           </BusdAndBustDiv>
           <SwapButtonDiv>
-              <SwapButton onClick={handleAddLiquidity}>Supply</SwapButton>
+              <SwapButton onClick={handleAddLiquidity}>{loading ? <Spinner/> : "Supply"}</SwapButton>
           </SwapButtonDiv>
       </FormContainerMain>
   )
@@ -334,7 +384,8 @@ const SwapButton = styled.button`
     opacity: 0.5;
     cursor: pointer;
     box-shadow: none;
-    background-color: rgb(255, 104, 113);
+    color: #FFFFFF;
+    background-color: rgb(244, 0, 16);
     border: 1px solid rgb(255, 104, 113);
     margin: 10px;
 `;

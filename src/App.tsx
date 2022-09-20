@@ -3,6 +3,7 @@ import Liquidity from './view/liquidity/Liquidity';
 import Swap from './view/Swap';
 import Home from './view/Home';
 import {BrowserRouter, Route, Routes} from 'react-router-dom';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   return (
