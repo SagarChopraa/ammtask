@@ -387,6 +387,7 @@ const SwapButton = styled.button`
     padding: 10px;
     border-radius: 20px;
     opacity: 0.5;
+    width: 100%;
     cursor: pointer;
     box-shadow: none;
     color: #FFFFFF;

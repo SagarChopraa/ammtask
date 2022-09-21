@@ -343,6 +343,7 @@ const SwapButton = styled.button`
     border-radius: 20px;
     opacity: 0.5;
     cursor: pointer;
+    width: 100%;
     box-shadow: none;
     background-color: rgb(236, 6, 21);
     border: 1px solid rgb(255, 104, 113);

@@ -44,7 +44,7 @@ export const RemoveLiquidity = () => {
       setSelectedTokenB(Number(tokenB) * (percentage / 100));
       setSelectedTokenA(Number(tokenA) * (percentage / 100));
     }
-  }, [percentage, selectedLP]);
+  }, [percentage, selectedLP,loading]);
 
 
   // Remove liquidity start
@@ -64,7 +64,7 @@ export const RemoveLiquidity = () => {
 
     getBUSTLP();
 
-  }, [BustPair, address]);
+  }, [BustPair, address, loading]);
 
   // Pool token end
 
@@ -144,7 +144,7 @@ export const RemoveLiquidity = () => {
 
   useEffect(() => {
     getTotalSupply();
-  },[tokenA, tokenB])
+  },[tokenA, tokenB, BustPair, totalSupply, loading])
 
   
 
@@ -238,6 +238,7 @@ const SwapButtonDiv = styled.div`
 const SwapButton = styled.button`
     padding: 10px;
     border-radius: 20px;
+    width: 100%;
     opacity: 0.5;
     cursor: pointer;
     box-shadow: none;
