@@ -29,7 +29,12 @@ const AddLiquidity = () => {
   const { BUST } = selector;
   const { BustPair } = selector;
   const { RouterBust } = selector;
-  const success = () => toast('liquidity successfull');
+  const success = () => toast('Liquidity Add Successfull');
+  const failed = () => toast('Liquidity Add Failed');
+  const bustSuccess = () => toast('BUST Approved Successfully');
+  const bustfailed = () => toast('BUST Approved Failed');
+  const restSucess = () => toast('REST Approved Successfully');
+  const restfailed = () => toast('REST Approved Failed');
 
   useEffect(() => {
 
@@ -39,7 +44,7 @@ const AddLiquidity = () => {
       try {
         const Rest = await REST.methods.balanceOf(address).call();
         const FinalRest = Web3.utils.fromWei(Rest);
-        setbalancerest(FinalRest);
+        setbalancerest(parseFloat(FinalRest).toFixed(2));
       }
       catch (err) {
         console.log(err);
@@ -56,7 +61,7 @@ const AddLiquidity = () => {
       try {
         const bust = await BUST.methods.balanceOf(address).call();
         const Finalbust = Web3.utils.fromWei(bust);
-        setbalancebust(Finalbust);
+        setbalancebust(parseFloat(Finalbust).toFixed(2));
       }
       catch (err) {
         console.log(err);
@@ -184,9 +189,9 @@ const AddLiquidity = () => {
       .on("transactionHash", (hash: any) => {
         alert(hash)
       }).on("receipt", (receipt: any) => {
-        alert("REST Approved Successfully")
+        restSucess();
       }).on("error", (error: any, receipt: any) => {
-        alert("swap failed")
+        restfailed();
       });
     } catch (err) {
       console.log(err);
@@ -200,9 +205,9 @@ const AddLiquidity = () => {
       .on("transactionHash", (hash: any) => {
         alert(hash)
       }).on("receipt", (receipt: any) => {
-        alert("BUST Approved Successfully")
+        bustSuccess();
       }).on("error", (error: any, receipt: any) => {
-        alert("swap failed")
+        bustfailed();
       });
     } catch (err) {
       console.log(err);
@@ -243,7 +248,7 @@ const AddLiquidity = () => {
         }).on("error", (error: any, receipt: any) => {
           setBust("");
           setRest("");
-          alert("Liquidity failed")
+          failed();
         });
         }else{
           await approveREST();

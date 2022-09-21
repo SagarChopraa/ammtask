@@ -2,10 +2,11 @@ import Navbar from "./Navbar"
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import styled from "styled-components"
+import { ToastContainer, toast } from 'react-toastify';
 import Web3 from "web3";
 import BigNumber from "bignumber.js"
-import {BustRouterAddress} from '../abi/bustRouterABI';
 import { Spinner } from "../logic/Spinner";
+import {BustRouterAddress} from '../abi/bustRouterABI';
 import { wbnbAddress } from "../abi/rest"; // REST
 import { bustFactoryAddress } from "../abi/bust";  //BUST
 import { convertToMax, convertToMin, ethToWei, weiToEth } from "../logic/conversion";
@@ -29,6 +30,12 @@ const Swap = () => {
   const RestToBust = [RESTAddress, BUSTAddress];
   const BustToRest = [BUSTAddress, RESTAddress];
   const [routerAddress, setRouterAddress] = useState<any>(RestToBust)
+  const bustSuccess = () => toast('BUST Approved Successfully');
+  const bustfailed = () => toast('BUST Approved Failed');
+  const restSucess = () => toast('REST Approved Successfully');
+  const restfailed = () => toast('REST Approved Failed');
+  const swapSuccess = () => toast('Swap Successfull');
+  const swapFailed = () => toast('Swap Failed');
   /** function to get balance of tokens */
     const getTokenBalance = async () => {
       try {
@@ -63,12 +70,10 @@ const Swap = () => {
     try {
       const approvebusd = await REST.methods.approve(BustRouterAddress, Web3.utils.toWei(amountA))
       .send({ from: address })
-      .on("transactionHash", (hash: any) => {
-        alert(hash)
-      }).on("receipt", (receipt: any) => {
-        alert("REST Approved Successfully")
+      .on("receipt", (receipt: any) => {
+        restSucess();
       }).on("error", (error: any, receipt: any) => {
-        alert("swap failed")
+        restfailed();
       });
     } catch (err) {
       console.log(err);
@@ -81,12 +86,10 @@ const Swap = () => {
     try {
       const approvebust = await BUST.methods.approve(BustRouterAddress, maxAllowance)
       .send({ from: address })
-      .on("transactionHash", (hash: any) => {
-        alert(hash)
-      }).on("receipt", (receipt: any) => {
-        alert("BUST Approved Successfully")
+      .on("receipt", (receipt: any) => {
+        bustSuccess();
       }).on("error", (error: any, receipt: any) => {
-        alert("swap failed")
+        bustfailed();
       });
     } catch (err) {
       console.log(err);
@@ -119,11 +122,11 @@ const Swap = () => {
       .on("receipt", (receipt: any) => {
           setAmountA("");
           setAmountB("");
-          alert("swapExactTokensForTokens successfull")
+          swapSuccess();
       }).on("error", (error: any, receipt: any) => {
           setAmountA("");
           setAmountB("");
-          alert("swapExactTokensForTokens failed")
+          swapFailed();
       });
       setLoading(false);
       }catch(err) {
@@ -148,11 +151,11 @@ const Swap = () => {
       .on("receipt", (receipt: any) => {
           setAmountA("");
           setAmountB("");
-          alert("swapTokensForExactTokens Success")
+          swapSuccess();
       }).on("error", (error: any, receipt: any) => {
           setAmountA("");
           setAmountB("");
-          alert("swapTokensForExactTokens failed")
+          swapFailed();
       });
       setLoading(false);
       }catch(err) {
@@ -172,6 +175,7 @@ const Swap = () => {
   }, [REST, BUST, address, addLiquidityLoading, loading]);
   return (
     <>
+      <ToastContainer />
       <Navbar />
       <SwapContainerMain>
         <SwapOuterDiv>

@@ -1,10 +1,10 @@
 import BigNumber from 'bignumber.js'
 
-export const weiToEth = (amount: string, decimals: number) => {
+export const weiToEth = (amount: string, decimals: number = 18) => {
   return new BigNumber(amount).dividedBy(10 ** decimals).toFixed()
 }
 
-export const ethToWei = (amount: string, decimals: number) => {
+export const ethToWei = (amount: string, decimals: number = 18) => {
   return new BigNumber(amount).times(10 ** decimals).toFixed()
 }
 
