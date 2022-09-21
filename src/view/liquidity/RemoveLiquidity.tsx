@@ -7,6 +7,8 @@ import { bustFactoryAddress } from "../../abi/bust";
 import { wbnbAddress } from "../../abi/rest"; // 
 import { convertToMin, ethToWei, weiToEth } from "../../logic/conversion";
 import {  ToastContainer, toast } from "react-toastify";
+import { routerReducer } from "../../logic/reducer/routerReducer";
+import { BustRouterAddress } from "../../abi/bustRouterABI";
 const BUSTAddress = bustFactoryAddress;
 const RESTAddress = wbnbAddress;
 
@@ -100,7 +102,7 @@ export const RemoveLiquidity = () => {
 
   const approvePair = async () => {
     try {
-      const approve = await BustPair.methods.approve(address, ethToWei(selectedLP)).send({from: address})
+      const approve = await BustPair.methods.approve(BustRouterAddress, ethToWei(selectedLP)).send({from: address})
       .on("receipt", function () {
         approveSuccess();
       })
