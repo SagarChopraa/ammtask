@@ -8,7 +8,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { Spinner } from "../../logic/Spinner";
 import { wbnbAddress } from "../../abi/rest"; // REST
 import { bustFactoryAddress } from "../../abi/bust";  //BUST
-import { weiToEth } from "../../logic/conversion";
+import { ethToWei, weiToEth } from "../../logic/conversion";
 const BUSTAddress = bustFactoryAddress;
 const RESTAddress = wbnbAddress;
 
@@ -20,6 +20,8 @@ const AddLiquidity = () => {
   const [balancebust, setbalancebust] = useState<string>('0.00');
   const [reserve0, setReserve0] = useState();
   const [reserve1, setReserve1] = useState();
+  const [initialREST, setInitlalREST] = useState<any>();
+  const [initialBust, setInitialBust] = useState<any>();
   const [isApprovedRest, setIsApprovedRest] = useState<boolean>(false);
   const [isApprovedBust, setIsApprovedBust] = useState<boolean>(false);
   const [loading, setLoading] = useState<any>(false);
@@ -76,21 +78,46 @@ const AddLiquidity = () => {
 
   // Get Reserve Start
 
-  useEffect(() => {
-    const getReserve = async () => {
-      try {
-        const Reserve = await BustPair.methods.getReserves().call();
-        setReserve0(Reserve._reserve0);
-        setReserve1(Reserve._reserve1);
-      } catch (err) {
-        console.log(err);
-      }
+  const getReserve = async () => {
+    try {
+      const Reserve = await BustPair.methods.getReserves().call();
+      setReserve0(Reserve._reserve0);
+      setReserve1(Reserve._reserve1);
+    } catch (err) {
+      console.log(err);
     }
+  }
 
+  useEffect(() => {
     getReserve();
   }, [BustPair]);
 
   // Get Reserve End
+
+  const getInitials = async () => {
+    try {
+      getReserve();
+      let init = "1";
+      if (reserve0 && reserve1) {
+        const amountA = await RouterBust.methods
+          .quote(ethToWei(init), reserve0, reserve1)
+          .call();
+        const floatA = parseFloat(weiToEth(amountA));
+        setInitlalREST(floatA.toFixed(2));
+        const amountB = await RouterBust.methods
+          .quote(ethToWei(init), reserve1, reserve0)
+          .call();
+        const floatB = parseFloat(weiToEth(amountB));
+        setInitialBust(floatB.toFixed(2));
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    getInitials();
+  }, [RouterBust, reserve0, reserve1]);
 
   // Get Quote start
   useEffect(() => {
@@ -263,9 +290,7 @@ const AddLiquidity = () => {
 
   // ADD liquidity end
 
- const handleAddLiquidity= async () => {
-    // await approveREST();
-    // await approveBUST();        
+ const handleAddLiquidity= async () => {    
     await addLiquidity()
   }
 
@@ -294,8 +319,8 @@ const AddLiquidity = () => {
               <SlippageDiv>Transaction deadline: 15 min</SlippageDiv>
           </SlipAndToleDiv>
           <BusdAndBustDiv>
-              <SlippageDiv>1REST = 2.490698 BUST</SlippageDiv>
-              <SlippageDiv>1BUST = {oneRest} REST</SlippageDiv>
+              <SlippageDiv>1REST = {initialBust} BUST</SlippageDiv>
+              <SlippageDiv>1BUST = {initialREST} REST</SlippageDiv>
           </BusdAndBustDiv>
           <SwapButtonDiv>
               <SwapButton onClick={handleAddLiquidity}>{loading ? <Spinner/> : "Supply"}</SwapButton>

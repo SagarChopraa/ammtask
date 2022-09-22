@@ -24,6 +24,8 @@ export const RemoveLiquidity = () => {
   const [selectedtokenB, setSelectedTokenB] = useState<any>()
   const [selectedLP, setSelectedLP] = useState<any>();
   const [totalSupply, setTotalSupply] = useState<any>();
+  const [initialREST, setInitlalREST] = useState<any>();
+  const [initialBust, setInitialBust] = useState<any>();
   const selector = useSelector((state:any) => state);
   const { address } = selector.wallet;
   const { BustPair } = selector;
@@ -44,7 +46,7 @@ export const RemoveLiquidity = () => {
       setSelectedTokenB(Number(tokenB) * (percentage / 100));
       setSelectedTokenA(Number(tokenA) * (percentage / 100));
     }
-  }, [percentage, selectedLP,loading]);
+  }, [percentage, selectedLP, loading, selectedtokenA, selectedtokenB, tokenA, tokenB]);
 
 
   // Remove liquidity start
@@ -68,23 +70,49 @@ export const RemoveLiquidity = () => {
 
   // Pool token end
 
+
   // Get Reserve Start
 
-  useEffect(() => {
-    const getReserve = async () => {
-      try {
-        const Reserve = await BustPair.methods.getReserves().call();
-        setReserve0(Reserve._reserve0);
-        setReserve1(Reserve._reserve1);
-      } catch (err) {
-        console.log(err);
-      }
+  const getReserve = async () => {
+    try {
+      const Reserve = await BustPair.methods.getReserves().call();
+      setReserve0(Reserve._reserve0);
+      setReserve1(Reserve._reserve1);
+    } catch (err) {
+      console.log(err);
     }
+  }
 
+  useEffect(() => {
     getReserve();
   }, [BustPair]);
 
   // Get Reserve End
+
+  const getInitials = async () => {
+    try {
+      getReserve();
+      let init = "1";
+      if (reserve0 && reserve1) {
+        const amountA = await RouterBust.methods
+          .quote(ethToWei(init), reserve0, reserve1)
+          .call();
+        const floatA = parseFloat(weiToEth(amountA));
+        setInitlalREST(floatA.toFixed(2));
+        const amountB = await RouterBust.methods
+          .quote(ethToWei(init), reserve1, reserve0)
+          .call();
+        const floatB = parseFloat(weiToEth(amountB));
+        setInitialBust(floatB.toFixed(2));
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    getInitials();
+  }, [RouterBust, reserve0, reserve1]);
 
   const getTotalSupply = async () => {
     try{
@@ -102,13 +130,15 @@ export const RemoveLiquidity = () => {
 
   const approvePair = async () => {
     try {
-      const approve = await BustPair.methods.approve(BustRouterAddress, ethToWei(selectedLP)).send({from: address})
-      .on("receipt", function () {
-        approveSuccess();
-      })
-      .on("error", function () {
-        approveFailure();
-      });
+      if(selectedLP) {
+        const approve = await BustPair.methods.approve(BustRouterAddress, ethToWei(selectedLP)).send({from: address})
+        .on("receipt", function () {
+          approveSuccess();
+        })
+        .on("error", function () {
+          approveFailure();
+        });
+      }
     } catch (error) {
       console.log(error);
     }
@@ -117,26 +147,28 @@ export const RemoveLiquidity = () => {
 
   const removeLiquidity = async () => {
     try {
-      setLoading(true);
-      await approvePair();
-      const remove = await RouterBust.methods
-        .removeLiquidity(
-          RESTAddress,
-          BUSTAddress,
-          ethToWei(selectedLP),
-          convertToMin(selectedtokenA),
-          convertToMin(selectedtokenB),
-          address,
-          Date.now() + 900,
-        )
-        .send({ from: address })
-        .on("receipt", function () {
-          removeSuccess();
-        })
-        .on("error", function () {
-          removeFailure();
-        });
-        setLoading(false);
+      if(selectedLP && selectedtokenA && selectedtokenB) {
+        setLoading(true);
+        await approvePair();
+        const remove = await RouterBust.methods
+          .removeLiquidity(
+            RESTAddress,
+            BUSTAddress,
+            ethToWei(selectedLP),
+            convertToMin(selectedtokenA),
+            convertToMin(selectedtokenB),
+            address,
+            Date.now() + 900,
+          )
+          .send({ from: address })
+          .on("receipt", function () {
+            removeSuccess();
+          })
+          .on("error", function () {
+            removeFailure();
+          });
+          setLoading(false);
+      }
     } catch (error) {
       console.log(error);
     }
@@ -144,7 +176,7 @@ export const RemoveLiquidity = () => {
 
   useEffect(() => {
     getTotalSupply();
-  },[tokenA, tokenB, BustPair, totalSupply, loading])
+  },[BustPair, totalSupply, loading, tokenA, tokenB])
 
   
 
@@ -165,11 +197,11 @@ export const RemoveLiquidity = () => {
                   <Token>BUST-LP</Token>
               </ValueAndToken>
               <ValueAndToken>
-                  <Value>{tokenA}</Value>
+                  <Value>{parseFloat(tokenA).toFixed(4)}</Value>
                   <Token>REST</Token>
               </ValueAndToken>
               <ValueAndToken>
-                  <Value>{tokenB}</Value>
+                  <Value>{parseFloat(tokenB).toFixed(4)}</Value>
                   <Token>BUST</Token>
               </ValueAndToken>
           </PoolTokenContainer>
@@ -193,8 +225,8 @@ export const RemoveLiquidity = () => {
               <SlippageDiv>Transaction deadline: 15 min</SlippageDiv>
           </SlipAndToleDiv>
           <BusdAndBustDiv>
-              <SlippageDiv>1REST = 2.490698 BUST</SlippageDiv>
-              <SlippageDiv>1BUST = 0.401490 BUSD</SlippageDiv>
+              <SlippageDiv>1REST = {initialBust} BUST</SlippageDiv>
+              <SlippageDiv>1BUST = {initialREST} BUSD</SlippageDiv>
           </BusdAndBustDiv>
           <SwapButtonDiv>
               <SwapButton onClick={removeLiquidity}>{loading ? <Spinner/> : "Remove"}</SwapButton>
