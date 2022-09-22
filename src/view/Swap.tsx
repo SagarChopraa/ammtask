@@ -18,6 +18,10 @@ const Swap = () => {
   const { RouterBust, REST, BUST, BustPair } = selector;
   const { address } = selector.wallet;
   const [loading, setLoading] = useState<any>(false);
+  const [reserve0, setReserve0] = useState();
+  const [reserve1, setReserve1] = useState();
+  const [initialREST, setInitlalREST] = useState<any>();
+  const [initialBust, setInitialBust] = useState<any>();
   const [rustBalance, setRustBalance] = useState("0.00");
   const [bustBalance, setBustBalance] = useState("0.00");
   const [addLiquidityLoading, setAddLiquidityLoading] = useState(false);
@@ -36,6 +40,49 @@ const Swap = () => {
   const restfailed = () => toast('REST Approved Failed');
   const swapSuccess = () => toast('Swap Successfull');
   const swapFailed = () => toast('Swap Failed');
+
+  // get initials
+
+  const getReserve = async () => {
+    try {
+      const Reserve = await BustPair.methods.getReserves().call();
+      setReserve0(Reserve._reserve0);
+      setReserve1(Reserve._reserve1);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  useEffect(() => {
+    getReserve();
+  }, [BustPair]);
+
+  const getInitials = async () => {
+    try {
+      getReserve();
+      let init = "1";
+      if (reserve0 && reserve1) {
+        const amountA = await RouterBust.methods
+          .quote(ethToWei(init), reserve0, reserve1)
+          .call();
+        const floatA = parseFloat(weiToEth(amountA));
+        setInitlalREST(floatA.toFixed(2));
+        const amountB = await RouterBust.methods
+          .quote(ethToWei(init), reserve1, reserve0)
+          .call();
+        const floatB = parseFloat(weiToEth(amountB));
+        setInitialBust(floatB.toFixed(2));
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    getInitials();
+  }, [RouterBust, reserve0, reserve1]);
+
+
   /** function to get balance of tokens */
     const getTokenBalance = async () => {
       try {
@@ -206,8 +253,8 @@ const Swap = () => {
                 <SlippageDiv>Transaction deadline: 15 min</SlippageDiv>
               </SlipAndToleDiv>
               <BusdAndBustDiv>
-                <SlippageDiv>1BUSD = 2.490698 BUST</SlippageDiv>
-                <SlippageDiv>1BUST = 0.401490 BUSD</SlippageDiv>
+                <SlippageDiv>1REST = {initialBust} BUST</SlippageDiv>
+                <SlippageDiv>1BUST = {initialREST} REST</SlippageDiv>
               </BusdAndBustDiv>
               <SwapButtonDiv>
                 <SwapButton onClick={() => handleSwap()}>{loading ? <Spinner/> : "Swap"}</SwapButton>
