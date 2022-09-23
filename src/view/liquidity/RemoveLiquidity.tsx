@@ -9,6 +9,9 @@ import { convertToMin, ethToWei, weiToEth } from "../../logic/conversion";
 import {  ToastContainer, toast } from "react-toastify";
 import { routerReducer } from "../../logic/reducer/routerReducer";
 import { BustRouterAddress } from "../../abi/bustRouterABI";
+import { useDispatch } from "react-redux";
+import { decrementDeadline, incrementDeadline } from "../../logic/action/deadline.action";
+import { decrementSlippage, incrementSlippage } from "../../logic/action/slippage.action";
 const BUSTAddress = bustFactoryAddress;
 const RESTAddress = wbnbAddress;
 
@@ -26,10 +29,15 @@ export const RemoveLiquidity = () => {
   const [totalSupply, setTotalSupply] = useState<any>();
   const [initialREST, setInitlalREST] = useState<any>();
   const [initialBust, setInitialBust] = useState<any>();
+  const [isRemoveAllowed, setIsRemoveAllowed] = useState(false);
   const selector = useSelector((state:any) => state);
   const { address } = selector.wallet;
   const { BustPair } = selector;
   const { RouterBust } = selector;
+
+  const { slippage, deadline } = selector;
+  const dispatch = useDispatch();
+
   const removeSuccess = () => toast("Remove Liquidity Successfull");
   const removeFailure = () => toast("Remove Liquidity Failed");
   const approveSuccess = () => toast("Approve LP Token Successfull");
@@ -128,19 +136,40 @@ export const RemoveLiquidity = () => {
     }
   }
 
+  const removeAllowance = async () => {
+    try {
+      const allowance = await BustPair.methods
+        .allowance(address, BustRouterAddress)
+        .call();
+      if (parseFloat(weiToEth(allowance)) >= parseFloat(selectedLP)) {
+        setIsRemoveAllowed(true);
+      } else {
+        setIsRemoveAllowed(false);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const approvePair = async () => {
     try {
+      setLoading(true);
       if(selectedLP) {
         const approve = await BustPair.methods.approve(BustRouterAddress, ethToWei(selectedLP)).send({from: address})
         .on("receipt", function () {
           approveSuccess();
+          removeAllowance();
+          setLoading(false);
         })
         .on("error", function () {
           approveFailure();
+          removeAllowance();
+          setLoading(false);
         });
       }
     } catch (error) {
       console.log(error);
+      setLoading(false);
     }
   }
 
@@ -149,28 +178,30 @@ export const RemoveLiquidity = () => {
     try {
       if(selectedLP && selectedtokenA && selectedtokenB) {
         setLoading(true);
-        await approvePair();
         const remove = await RouterBust.methods
           .removeLiquidity(
             RESTAddress,
             BUSTAddress,
             ethToWei(selectedLP),
-            convertToMin(selectedtokenA),
-            convertToMin(selectedtokenB),
+            convertToMin(selectedtokenA, slippage),
+            convertToMin(selectedtokenB, slippage),
             address,
             Date.now() + 900,
           )
           .send({ from: address })
           .on("receipt", function () {
+            setLoading(false);
             removeSuccess();
           })
           .on("error", function () {
+            setLoading(false);
             removeFailure();
           });
           setLoading(false);
       }
     } catch (error) {
       console.log(error);
+      setLoading(false);
     }
   }
 
@@ -221,14 +252,23 @@ export const RemoveLiquidity = () => {
               </ValueAndToken>
           </PoolTokenContainer>
           <SlipAndToleDiv>
-              <SlippageDiv>Slippage tolerance: 0.5%</SlippageDiv>
-              <SlippageDiv>Transaction deadline: 15 min</SlippageDiv>
+              <SlippageDiv>Slippage tolerance:
+                <ValueButton onClick={() => dispatch(decrementSlippage())} disabled={ slippage <= 0.2 }>-</ValueButton> 
+                {slippage.toFixed(1)} %  {" "}
+                <ValueButton onClick={() => dispatch(incrementSlippage())} disabled={ slippage >= 2 }>+</ValueButton>
+              </SlippageDiv>
+              <SlippageDiv>Transaction deadline: 
+                <ValueButton onClick={() => dispatch(decrementDeadline())} disabled={deadline<=15}>-</ValueButton> 
+                {deadline} min {"  "}
+                <ValueButton onClick={() => dispatch(incrementDeadline())} disabled={deadline>=60}>+</ValueButton>
+              </SlippageDiv>
           </SlipAndToleDiv>
           <BusdAndBustDiv>
               <SlippageDiv>1REST = {initialBust} BUST</SlippageDiv>
               <SlippageDiv>1BUST = {initialREST} BUSD</SlippageDiv>
           </BusdAndBustDiv>
           <SwapButtonDiv>
+              {!isRemoveAllowed && <SwapButton onClick={approvePair} disabled={isRemoveAllowed}>{loading ? <Spinner/> : "Approve"}</SwapButton>}
               <SwapButton onClick={removeLiquidity}>{loading ? <Spinner/> : "Remove"}</SwapButton>
           </SwapButtonDiv>
       </PoolContainerMain>
@@ -247,6 +287,7 @@ const SlipAndToleDiv = styled.div`
 
 const SlippageDiv = styled.div`
   font-size: 15px;
+  margin-top: 10px;
 `; 
 
 const BusdAndBustDiv = styled.div`
@@ -333,4 +374,21 @@ const Value = styled.span`
 
 const Token = styled.span`
   font-size: 16px;
+`;
+
+const ValueButton = styled.button`
+  font-size: 20px;
+  border: none;
+  margin: 0px 12px;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 4px 12px;
+  border-radius: 8px;
+  color: #FFFFFF;
+  background-color: rgb(244, 0, 16);
+
+  :disabled{
+    cursor: not-allowed;
+    opacity: 0.3;
+  }
 `;

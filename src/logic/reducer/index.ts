@@ -4,6 +4,8 @@ import { bustpairReducer } from "./bustpairReducer";
 import { wbnbReducer } from "./wbnbReducer";
 import { bustfactoryReducer } from "./bustfactoryReducer";
 import { ethReducer } from "./wallet.reducer";
+import { slippageReducer } from "./slippage.reducer";
+import { deadlineReducer } from "./deadline.reducer";
 
 const rootReducer = combineReducers(
   {
@@ -11,7 +13,9 @@ const rootReducer = combineReducers(
     BustPair : bustpairReducer,
     REST : wbnbReducer,
     BUST : bustfactoryReducer,
-    wallet : ethReducer
+    wallet : ethReducer,
+    slippage: slippageReducer,
+    deadline: deadlineReducer,
   }
 )
 

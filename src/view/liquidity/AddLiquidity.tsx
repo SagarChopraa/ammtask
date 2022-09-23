@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import styled from "styled-components"
 import Web3 from "web3";
 import BigNumber from "bignumber.js"
@@ -8,7 +8,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import { Spinner } from "../../logic/Spinner";
 import { wbnbAddress } from "../../abi/rest"; // REST
 import { bustFactoryAddress } from "../../abi/bust";  //BUST
-import { ethToWei, weiToEth } from "../../logic/conversion";
+import { convertToMin, ethToWei, weiToEth } from "../../logic/conversion";
+import { decrementDeadline, incrementDeadline } from "../../logic/action/deadline.action";
+import { decrementSlippage, incrementSlippage } from "../../logic/action/slippage.action";
 const BUSTAddress = bustFactoryAddress;
 const RESTAddress = wbnbAddress;
 
@@ -31,6 +33,10 @@ const AddLiquidity = () => {
   const { BUST } = selector;
   const { BustPair } = selector;
   const { RouterBust } = selector;
+
+  const { slippage, deadline } = selector;
+  const dispatch = useDispatch();
+  
   const success = () => toast('Liquidity Add Successfull');
   const failed = () => toast('Liquidity Add Failed');
   const bustSuccess = () => toast('BUST Approved Successfully');
@@ -133,14 +139,6 @@ const AddLiquidity = () => {
     };
   }, [])
 
-  const handleMinReceive = (val: any, slippage: number) => {
-    const slippageValue = new BigNumber(slippage).dividedBy(100)
-    const valueTobeRemoved = new BigNumber(val).multipliedBy(slippageValue)
-    const value = new BigNumber(val).minus(valueTobeRemoved)
-    return value
-  }
-
-
   const getQuoteRest = async (bust: any) => {
     try {
       if (bust === "") {
@@ -164,7 +162,7 @@ const AddLiquidity = () => {
         const amountB = await RouterBust.methods
           .quote(Web3.utils.toWei(rest), reserve1, reserve0)
           .call();
-          setBust(Web3.utils.fromWei(amountB));
+          setBust(parseFloat(Web3.utils.fromWei(amountB)).toFixed(2));
       }
     } catch (err) {
       console.log(err);
@@ -207,18 +205,19 @@ const AddLiquidity = () => {
   
   useEffect(() => {
     getAllowances(rest, bust);
-  }, [rest, bust]);
+  }, [rest, bust, loading]);
 
   const approveREST = async () => {
     try {
+      setLoading(true);
       const approvebusd = await REST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
       .send({ from: address })
-      .on("transactionHash", (hash: any) => {
-        alert(hash)
-      }).on("receipt", (receipt: any) => {
+      .on("receipt", (receipt: any) => {
         restSucess();
+        setLoading(false);
       }).on("error", (error: any, receipt: any) => {
         restfailed();
+        setLoading(false);
       });
     } catch (err) {
       console.log(err);
@@ -227,14 +226,15 @@ const AddLiquidity = () => {
 
   const approveBUST = async () => {
     try {
+      setLoading(true);
       const approvebust = await BUST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
       .send({ from: address })
-      .on("transactionHash", (hash: any) => {
-        alert(hash)
-      }).on("receipt", (receipt: any) => {
+      .on("receipt", (receipt: any) => {
         bustSuccess();
+        setLoading(false);
       }).on("error", (error: any, receipt: any) => {
         bustfailed();
+        setLoading(false);
       });
     } catch (err) {
       console.log(err);
@@ -251,8 +251,8 @@ const AddLiquidity = () => {
         setLoading(true);
         if(isApprovedRest && isApprovedBust){
         console.log("addliquidity", rest, bust);
-        const aMin = handleMinReceive( Web3.utils.toWei(rest), 0.5);
-        const bMin = handleMinReceive( Web3.utils.toWei(bust), 0.5);
+        const aMin = convertToMin( rest, slippage);
+        const bMin = convertToMin( bust, slippage);
         console.log("deadline", aMin.toString(), bMin.toString());
         const deadline = Date.now() + 900;
         console.log("deadline end", deadline);
@@ -262,8 +262,8 @@ const AddLiquidity = () => {
           BUSTAddress, 
           Web3.utils.toWei(rest), 
           Web3.utils.toWei(bust), 
-          aMin.toFixed(0), 
-          bMin.toFixed(0), 
+          aMin, 
+          bMin, 
           address, 
           deadline
           )
@@ -272,10 +272,12 @@ const AddLiquidity = () => {
           setBust("");
           setRest("");
           success();
+          setLoading(false);
         }).on("error", (error: any, receipt: any) => {
           setBust("");
           setRest("");
           failed();
+          setLoading(false);
         });
         }else{
           await approveREST();
@@ -302,7 +304,7 @@ const AddLiquidity = () => {
                   <HeadingOne>REST</HeadingOne>
                   <HeadingOne>Balance: {balancerest}</HeadingOne>
               </FormInputOneHeading>
-              <InputField placeholder="0.00" value={rest ? rest : ''} onChange={(e) => { setRest(e.target.value); getQuoteBust(e.target.value) }}></InputField>
+              <InputField placeholder="0.00" maxLength={18} value={rest ? rest : ''} onChange={(e) => { setRest(e.target.value); getQuoteBust(e.target.value) }}></InputField>
           </FormInputOne>
           <ArrowSignDiv>
               <ArrowSign></ArrowSign>
@@ -312,18 +314,31 @@ const AddLiquidity = () => {
                   <HeadingOne>BUST</HeadingOne>
                   <HeadingOne>Balance: {balancebust}</HeadingOne>
               </FormInputOneHeading>
-              <InputField placeholder="0.00" value={bust ? bust : ''} onChange={(e) => { setBust(e.target.value); getQuoteRest(e.target.value) }}></InputField>
+              <InputField placeholder="0.00" maxLength={18} value={bust ? bust : ''} onChange={(e) => { setBust(e.target.value); getQuoteRest(e.target.value) }}></InputField>
           </FormInputOne>
           <SlipAndToleDiv>
-              <SlippageDiv>Slippage tolerance: 0.5%</SlippageDiv>
-              <SlippageDiv>Transaction deadline: 15 min</SlippageDiv>
+              <SlippageDiv>Slippage tolerance:
+                <ValueButton onClick={() => dispatch(decrementSlippage())} disabled={ slippage <= 0.2 }>-</ValueButton> 
+                {slippage.toFixed(1)} %  {" "}
+                <ValueButton onClick={() => dispatch(incrementSlippage())} disabled={ slippage >= 2 }>+</ValueButton>
+              </SlippageDiv>
+              <SlippageDiv>Transaction deadline: 
+                <ValueButton onClick={() => dispatch(decrementDeadline())} disabled={deadline<=15}>-</ValueButton> 
+                {deadline} min {"  "}
+                <ValueButton onClick={() => dispatch(incrementDeadline())} disabled={deadline>=60}>+</ValueButton>
+              </SlippageDiv>
           </SlipAndToleDiv>
           <BusdAndBustDiv>
               <SlippageDiv>1REST = {initialBust} BUST</SlippageDiv>
               <SlippageDiv>1BUST = {initialREST} REST</SlippageDiv>
           </BusdAndBustDiv>
           <SwapButtonDiv>
-              <SwapButton onClick={handleAddLiquidity}>{loading ? <Spinner/> : "Supply"}</SwapButton>
+          {rest && !isApprovedRest && <SwapButton onClick={approveREST} disabled={isApprovedRest}>{loading ? <Spinner/> : "Approve REST"}</SwapButton>}
+          {bust && !isApprovedBust && <SwapButton onClick={approveBUST} disabled={isApprovedBust}>{loading ? <Spinner/> : "Approve BUST"}</SwapButton>}
+              <SwapButton onClick={handleAddLiquidity} disabled={!(parseFloat(balancerest) > parseFloat(rest)) ||
+                !(parseFloat(balancebust) > parseFloat(bust)) || !(isApprovedBust) || !(isApprovedRest)}>
+                {loading ? <Spinner/> : "Supply"}
+              </SwapButton>
           </SwapButtonDiv>
       </FormContainerMain>
   )
@@ -388,6 +403,7 @@ const SlipAndToleDiv = styled.div`
 
 const SlippageDiv = styled.div`
   font-size: 15px;
+  margin-top: 10px;
 `; 
 
 const BusdAndBustDiv = styled.div`
@@ -419,4 +435,26 @@ const SwapButton = styled.button`
     background-color: rgb(244, 0, 16);
     border: 1px solid rgb(255, 104, 113);
     margin: 10px;
+
+    :disabled{
+      cursor: not-allowed;
+      opacity: 0.3;
+    }
+`;
+
+const ValueButton = styled.button`
+  font-size: 20px;
+  border: none;
+  margin: 0px 12px;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 4px 12px;
+  border-radius: 8px;
+  color: #FFFFFF;
+  background-color: rgb(244, 0, 16);
+
+  :disabled{
+    cursor: not-allowed;
+    opacity: 0.3;
+  }
 `;

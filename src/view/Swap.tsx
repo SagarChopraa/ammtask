@@ -10,6 +10,9 @@ import {BustRouterAddress} from '../abi/bustRouterABI';
 import { wbnbAddress } from "../abi/rest"; // REST
 import { bustFactoryAddress } from "../abi/bust";  //BUST
 import { convertToMax, convertToMin, ethToWei, weiToEth } from "../logic/conversion";
+import { useDispatch } from "react-redux";
+import { decrementDeadline, incrementDeadline } from "../logic/action/deadline.action";
+import { decrementSlippage, incrementSlippage } from "../logic/action/slippage.action";
 const BUSTAddress = bustFactoryAddress;
 const RESTAddress = wbnbAddress;
 
@@ -34,6 +37,12 @@ const Swap = () => {
   const RestToBust = [RESTAddress, BUSTAddress];
   const BustToRest = [BUSTAddress, RESTAddress];
   const [routerAddress, setRouterAddress] = useState<any>(RestToBust)
+  const [isApprovedBust, setIsApprovedBust] = useState(false);
+  const [isApprovedRest, setIsApprovedRest] = useState(false);
+
+  const { slippage, deadline } = selector;
+  const dispatch = useDispatch();
+
   const bustSuccess = () => toast('BUST Approved Successfully');
   const bustfailed = () => toast('BUST Approved Failed');
   const restSucess = () => toast('REST Approved Successfully');
@@ -104,58 +113,116 @@ const Swap = () => {
     }
   }
 
-  const handleInputOne = async (input:any) =>{
-    setAmountA(input);
-    const result = await RouterBust.methods
-    .getAmountsOut(ethToWei(input, 18),routerAddress ) //RestToBust
-    .call();
-    setAmountB(weiToEth(result[1],18))
-    setType(1)
-  }
-
-  const approveREST = async () => {
-    try {
-      const approvebusd = await REST.methods.approve(BustRouterAddress, Web3.utils.toWei(amountA))
-      .send({ from: address })
-      .on("receipt", (receipt: any) => {
-        restSucess();
-      }).on("error", (error: any, receipt: any) => {
-        restfailed();
-      });
-    } catch (err) {
-      console.log(err);
+  const handleInputOne = async (input: any) => {
+    if (input) {
+      setAmountA(input);
+      const result = await RouterBust.methods
+        .getAmountsOut(ethToWei(input, 18), routerAddress)
+        .call();
+      setAmountB(weiToEth(result[1], 18));
+      setType(1);
+    } else {
+      setAmountA("");
+      setAmountB("");
     }
-  }
+  };
 
   const maxAllowance = new BigNumber(2).pow(128).minus(1);
 
+  const approveREST = async () => {
+    try {
+      setLoading(true);
+      const approvebusd = await REST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
+      .send({ from: address })
+      .on("receipt", (receipt: any) => {
+        restSucess();
+        setIsApprovedRest(true);
+        setLoading(false);
+      }).on("error", (error: any, receipt: any) => {
+        restfailed();
+        setIsApprovedRest(false);
+        setLoading(false);
+      });
+    } catch (err) {
+      console.log(err);
+      setLoading(false);
+    }
+  }
+
+
   const approveBUST = async () => {
     try {
+      setLoading(true);
       const approvebust = await BUST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
       .send({ from: address })
       .on("receipt", (receipt: any) => {
         bustSuccess();
+        setIsApprovedBust(true);
+        setLoading(false);
       }).on("error", (error: any, receipt: any) => {
         bustfailed();
+        setIsApprovedBust(false);
+        setLoading(false);
       });
     } catch (err) {
       console.log(err);
+      setLoading(false);
     }
   }
 
-  const handleInputTwo = async (input:any) =>{
-    setAmountB(input);
-    const result = await RouterBust.methods
-    .getAmountsIn(ethToWei(input, 18),routerAddress ) //RestToBust
-    .call();
-    setAmountA(weiToEth(result[0],18))
-    setType(2)
-  }
+  const getAllowances = async (rest: any = "", bust: any = "") => {
+    try {
+      const allowanceA = await REST.methods
+        .allowance(address, BustRouterAddress)
+        .call();
+      const allowanceB = await BUST.methods
+        .allowance(address, BustRouterAddress)
+        .call();
+      if (rest !== "") {
+        if (parseFloat(weiToEth(allowanceA, 18)) > parseFloat(rest)) {
+          setIsApprovedRest(true);
+        } else {
+          setIsApprovedRest(false);
+        }
+      }
+      if (bust !== "") {
+        if (parseFloat(weiToEth(allowanceB, 18)) > parseFloat(bust)) {
+          setIsApprovedBust(true);
+        } else {
+          setIsApprovedBust(false);
+        }
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    if (swapType === true) {
+      getAllowances(amountA, amountB);
+    } else {
+      getAllowances(amountB, amountB);
+    }
+  }, [amountA, amountB]);
+
+  const handleInputTwo = async (input: any) => {
+    if (input) {
+      setAmountB(input);
+      const result = await RouterBust.methods
+        .getAmountsIn(ethToWei(input, 18), routerAddress)
+        .call();
+      setAmountA(weiToEth(result[0], 18));
+      setType(2);
+    } else {
+      setAmountA("");
+      setAmountB("");
+    }
+  };
 
   const swapExactTokensForTokens = async () => {
     try{
       setLoading(true);
-      const amountOutMin = convertToMin(amountB);
+      const amountOutMin = convertToMin(amountB, slippage);
       const deadline = Date.now() + 900;
       const ExactTokensForTokens = await RouterBust.methods
       .swapExactTokensForTokens(
@@ -170,21 +237,24 @@ const Swap = () => {
           setAmountA("");
           setAmountB("");
           swapSuccess();
+          setLoading(false);
       }).on("error", (error: any, receipt: any) => {
           setAmountA("");
           setAmountB("");
           swapFailed();
+          setLoading(false);
       });
       setLoading(false);
       }catch(err) {
         console.log(err);
+        setLoading(false);
     }
   }
 
   const swapTokensForExactTokens = async () => {
     try{
       setLoading(true);
-      const amountInMax = convertToMax(amountA);
+      const amountInMax = convertToMax(amountA, slippage);
       const deadline = Date.now() + 900;
       const ExactTokensForTokens = await RouterBust.methods
       .swapTokensForExactTokens(
@@ -199,14 +269,17 @@ const Swap = () => {
           setAmountA("");
           setAmountB("");
           swapSuccess();
+          setLoading(false);
       }).on("error", (error: any, receipt: any) => {
           setAmountA("");
           setAmountB("");
           swapFailed();
+          setLoading(false);
       });
       setLoading(false);
       }catch(err) {
         console.log(err);
+        setLoading(false);
     }
   }
   const handleSwap = () =>{
@@ -249,15 +322,24 @@ const Swap = () => {
                 <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
               </FormInputOne>
               <SlipAndToleDiv>
-                <SlippageDiv>Slippage tolerance: 0.5%</SlippageDiv>
-                <SlippageDiv>Transaction deadline: 15 min</SlippageDiv>
+                <SlippageDiv>Slippage tolerance:
+                  <ValueButton onClick={() => dispatch(decrementSlippage())} disabled={ slippage <= 0.2 }>-</ValueButton> 
+                  {slippage.toFixed(1)} %  {" "}
+                  <ValueButton onClick={() => dispatch(incrementSlippage())} disabled={ slippage >= 2 }>+</ValueButton>
+                </SlippageDiv>
+                <SlippageDiv>Transaction deadline: 
+                  <ValueButton onClick={() => dispatch(decrementDeadline())} disabled={deadline<=15}>-</ValueButton> 
+                  {deadline} min {"  "}
+                  <ValueButton onClick={() => dispatch(incrementDeadline())} disabled={deadline>=60}>+</ValueButton>
+                </SlippageDiv>
               </SlipAndToleDiv>
               <BusdAndBustDiv>
                 <SlippageDiv>1REST = {initialBust} BUST</SlippageDiv>
                 <SlippageDiv>1BUST = {initialREST} REST</SlippageDiv>
               </BusdAndBustDiv>
               <SwapButtonDiv>
-                <SwapButton onClick={() => handleSwap()}>{loading ? <Spinner/> : "Swap"}</SwapButton>
+              {(!isApprovedRest || !isApprovedBust) && <SwapButton onClick={()=>{approveREST();approveBUST();}} disabled={!amountA}>{loading ? <Spinner/> : "Approve"}</SwapButton>}
+                <SwapButton onClick={() => handleSwap()} disabled={!isApprovedBust && !isApprovedRest}>{loading ? <Spinner/> : "Swap"}</SwapButton>
               </SwapButtonDiv>
             </FormContainerMain>
           </SwapInterDiv>
@@ -365,6 +447,7 @@ const SlipAndToleDiv = styled.div`
 
 const SlippageDiv = styled.div`
   font-size: 15px;
+  margin-top: 10px;
 `; 
 
 const BusdAndBustDiv = styled.div`
@@ -396,5 +479,27 @@ const SwapButton = styled.button`
     border: 1px solid rgb(255, 104, 113);
     margin: 10px;
     color: #FFFFFF;
+
+    :disabled{
+      cursor: not-allowed;
+      opacity: 0.3;
+  }
+`;
+
+const ValueButton = styled.button`
+  font-size: 20px;
+  border: none;
+  margin: 0px 12px;
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 4px 12px;
+  border-radius: 8px;
+  color: #FFFFFF;
+  background-color: rgb(244, 0, 16);
+
+  :disabled{
+    cursor: not-allowed;
+    opacity: 0.3;
+  }
 `;
 
