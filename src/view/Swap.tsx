@@ -127,11 +127,11 @@ const Swap = () => {
     }
   }
 
-  const maxAllowance = new BigNumber(2).pow(256).minus(1);
+  const maxAllowance = new BigNumber(2).pow(128).minus(1);
 
   const approveBUST = async () => {
     try {
-      const approvebust = await BUST.methods.approve(BustRouterAddress, maxAllowance)
+      const approvebust = await BUST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
       .send({ from: address })
       .on("receipt", (receipt: any) => {
         bustSuccess();

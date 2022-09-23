@@ -176,7 +176,7 @@ const AddLiquidity = () => {
 
   // approve start
 
-  const maxAllowance = new BigNumber(2).pow(256).minus(1);
+  const maxAllowance = new BigNumber(2).pow(128).minus(1);
 
   const getAllowances = async (rest: any = "", bust: any = "") => {
     try {
@@ -211,7 +211,7 @@ const AddLiquidity = () => {
 
   const approveREST = async () => {
     try {
-      const approvebusd = await REST.methods.approve(BustRouterAddress, maxAllowance)
+      const approvebusd = await REST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
       .send({ from: address })
       .on("transactionHash", (hash: any) => {
         alert(hash)
@@ -227,7 +227,7 @@ const AddLiquidity = () => {
 
   const approveBUST = async () => {
     try {
-      const approvebust = await BUST.methods.approve(BustRouterAddress, maxAllowance)
+      const approvebust = await BUST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
       .send({ from: address })
       .on("transactionHash", (hash: any) => {
         alert(hash)
