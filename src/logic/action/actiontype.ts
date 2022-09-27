@@ -4,6 +4,8 @@ export const SET_BUSTPAIR_ABI = "SET_BUSTPAIR_ABI";
 
 export const SET_WBNB_ABI = "SET_WBNB_ABI";
 
+export const SET_WBNB = "SET_WBNB_ABI";
+
 export const SET_BUSTFACTORY_ABI = "SET_BUSTFACTORY_ABI";
 
 export const CONNECT_ETH_WALLET = "CONNECT_ETH_WALLET";

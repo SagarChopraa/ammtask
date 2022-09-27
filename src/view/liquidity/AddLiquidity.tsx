@@ -254,7 +254,6 @@ const AddLiquidity = () => {
         const aMin = convertToMin( rest, slippage);
         const bMin = convertToMin( bust, slippage);
         console.log("deadline", aMin.toString(), bMin.toString());
-        const deadline = Date.now() + 900;
         console.log("deadline end", deadline);
         const addliquidity = await RouterBust.methods
         .addLiquidity(
@@ -265,7 +264,7 @@ const AddLiquidity = () => {
           aMin, 
           bMin, 
           address, 
-          deadline
+          Date.now() + (deadline * 60)
           )
         .send({ from: address })
         .on("receipt", (receipt: any) => {

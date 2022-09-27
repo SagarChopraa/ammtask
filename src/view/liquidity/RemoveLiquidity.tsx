@@ -186,7 +186,7 @@ export const RemoveLiquidity = () => {
             convertToMin(selectedtokenA, slippage),
             convertToMin(selectedtokenB, slippage),
             address,
-            Date.now() + 900,
+            Date.now() + (deadline * 60)
           )
           .send({ from: address })
           .on("receipt", function () {
