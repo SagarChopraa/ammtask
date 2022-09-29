@@ -8,7 +8,7 @@ import { useWeb3React } from "@web3-react/core"
 import BigNumber from "bignumber.js"
 import { Spinner } from "../logic/Spinner";
 import {BustRouterAddress} from '../abi/bustRouterABI';
-import { wbnbAddress } from "../abi/rest"; // REST
+import { wbnbABI, wbnbAddress } from "../abi/rest"; // REST
 import { bustFactoryAddress } from "../abi/bust";  //BUST
 import { convertToMax, convertToMin, ethToWei, weiToEth } from "../logic/conversion";
 import { useDispatch } from "react-redux";
@@ -408,8 +408,14 @@ const Swap = () => {
   };
 
   useEffect(() => {
-    getTokenBalance();
-  }, [REST, BUST, address, addLiquidityLoading, loading]);
+    console.log("upper", address)
+    if(account && library && address){
+      (async()=> {
+        await getTokenBalance();
+
+      })()
+    }
+  }, [REST, BUST, address, addLiquidityLoading, loading, selector, account, library]);
 
 
   const handleDropdownChange = (value: any) => {

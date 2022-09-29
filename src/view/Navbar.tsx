@@ -20,22 +20,11 @@ declare let window: any;
 const Navbar = () => {
   const dispatch = useDispatch();
   const { active, account, library, connector, activate, deactivate } = useWeb3React()
-  const add = account;
 
   const connect = async () =>{
     try{
       await activate(injected);
       localStorage.setItem('isWalletConnected', "true")
-      const web3 = new Web3(window.ethereum);
-        dispatch(connectEthWallet(add));
-        const contract = new web3.eth.Contract(BustRouterABI, BustRouterAddress);
-        const contract2 = new web3.eth.Contract(BustPairABI, BustPairAddress);
-        const contract3 = new web3.eth.Contract(wbnbABI, wbnbAddress);
-        const contract4 = new web3.eth.Contract(bustFactoryABI, bustFactoryAddress);
-        dispatch(setrouterabi(contract));
-        dispatch(setBustPairabi(contract2));
-        dispatch(setwbnbabi(contract3));
-        dispatch(setBustFactoryabi(contract4));
     }catch(err){
       dispatch(disconnectEthWallet());
       console.log(err);
@@ -63,16 +52,6 @@ const Navbar = () => {
         try{
           await activate(injected)
           localStorage.setItem('isWalletConnected', "true")
-          const web3 = new Web3(window.ethereum);
-          dispatch(connectEthWallet(add));
-          const contract = new web3.eth.Contract(BustRouterABI, BustRouterAddress);
-          const contract2 = new web3.eth.Contract(BustPairABI, BustPairAddress);
-          const contract3 = new web3.eth.Contract(wbnbABI, wbnbAddress);
-          const contract4 = new web3.eth.Contract(bustFactoryABI, bustFactoryAddress);
-          dispatch(setrouterabi(contract));
-          dispatch(setBustPairabi(contract2));
-          dispatch(setwbnbabi(contract3));
-          dispatch(setBustFactoryabi(contract4));
         }catch(err){
           console.log(err);
         }
@@ -80,6 +59,20 @@ const Navbar = () => {
     }
     connectWalletOnPageLoad();
   }, [])
+
+  useEffect(() => {
+    if(library && account) {
+      dispatch(connectEthWallet(account));
+      const contract = new library.eth.Contract(BustRouterABI, BustRouterAddress);
+      const contract2 = new library.eth.Contract(BustPairABI, BustPairAddress);
+      const contract3 = new library.eth.Contract(wbnbABI, wbnbAddress);
+      const contract4 = new library.eth.Contract(bustFactoryABI, bustFactoryAddress);
+      dispatch(setrouterabi(contract));
+      dispatch(setBustPairabi(contract2));
+      dispatch(setwbnbabi(contract3));
+      dispatch(setBustFactoryabi(contract4));
+    }
+  }, [library, account])
 
 
   return (
