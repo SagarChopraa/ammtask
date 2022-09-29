@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import styled from "styled-components"
 import { ToastContainer, toast } from 'react-toastify';
 import Web3 from "web3";
+import { useWeb3React } from "@web3-react/core"
 import BigNumber from "bignumber.js"
 import { Spinner } from "../logic/Spinner";
 import {BustRouterAddress} from '../abi/bustRouterABI';
@@ -43,6 +44,8 @@ const Swap = () => {
   const [isApprovedBust, setIsApprovedBust] = useState(false);
   const [isApprovedRest, setIsApprovedRest] = useState(false);
   const [tokenName, setTokenName] = useState('BUST');
+
+  const { active, account, library, connector, activate, deactivate } = useWeb3React()
 
   const { slippage, deadline } = selector;
   const dispatch = useDispatch();
@@ -481,7 +484,8 @@ const Swap = () => {
               </BusdAndBustDiv>
               <SwapButtonDiv>
               {(!isApprovedRest || !isApprovedBust) && <SwapButton onClick={()=>{approveREST();approveBUST();}} disabled={!amountA}>{loading ? <Spinner/> : "Approve"}</SwapButton>}
-                <SwapButton onClick={() => handleSwap()} disabled={!isApprovedBust && !isApprovedRest}>{loading ? <Spinner/> : "Swap"}</SwapButton>
+                <SwapButton onClick={() => handleSwap()} disabled={!(parseFloat(rustBalance) > parseFloat(amountA)) ||
+                !(parseFloat(bustBalance) > parseFloat(amountB)) || !isApprovedBust && !isApprovedRest}>{loading ? <Spinner/> : "Swap"}</SwapButton>
               </SwapButtonDiv>
             </FormContainerMain>
           </SwapInterDiv>

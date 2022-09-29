@@ -12,55 +12,75 @@ import {setBustPairabi} from '../logic/action/bustpairabi.action';
 import {setwbnbabi} from '../logic/action/wbnbabi.action';
 import {setBustFactoryabi} from '../logic/action/bustfactoryabi';
 import {connectEthWallet, disconnectEthWallet} from '../logic/action/wallet.action';
-// import Logo from '../images/Logo.svg';
+import { useWeb3React } from "@web3-react/core"
+import {injected} from '../logic/connectors/walletConnectors';
 
 declare let window: any;
 
 const Navbar = () => {
-
-  const [address, setAddress] = useState();
-  const [openWalletList, setOpenWalletList] = useState(false);
-  const [contract, setContract] = useState<any>(null);
-  const selector = useSelector((state) => state);
-  // const {RouterBust} = selector;
   const dispatch = useDispatch();
+  const { active, account, library, connector, activate, deactivate } = useWeb3React()
+  const add = account;
+
+  const connect = async () =>{
+    try{
+      await activate(injected);
+      localStorage.setItem('isWalletConnected', "true")
+      const web3 = new Web3(window.ethereum);
+        dispatch(connectEthWallet(add));
+        const contract = new web3.eth.Contract(BustRouterABI, BustRouterAddress);
+        const contract2 = new web3.eth.Contract(BustPairABI, BustPairAddress);
+        const contract3 = new web3.eth.Contract(wbnbABI, wbnbAddress);
+        const contract4 = new web3.eth.Contract(bustFactoryABI, bustFactoryAddress);
+        dispatch(setrouterabi(contract));
+        dispatch(setBustPairabi(contract2));
+        dispatch(setwbnbabi(contract3));
+        dispatch(setBustFactoryabi(contract4));
+    }catch(err){
+      dispatch(disconnectEthWallet());
+      console.log(err);
+    }
+  }
+
+  async function disconnect() {
+    try {
+      deactivate()
+      localStorage.setItem('isWalletConnected', "false")
+      dispatch(disconnectEthWallet());
+      dispatch(setrouterabi(""));
+      dispatch(setBustPairabi(""));
+      dispatch(setwbnbabi(""));
+      dispatch(setBustFactoryabi(""));
+      window.location.reload();
+    } catch (err) {
+      console.log(err)
+    }
+  }
 
   useEffect(() => {
-    try{
-      if(openWalletList === false){
-        if(typeof window.ethereum !== "undefined"){
-          window.ethereum.request({method: 'eth_requestAccounts'}).then((accounts: any) => {
-              setAddress(accounts[0]);
-              const add = accounts[0];
-
-        const web3 = new Web3(window.ethereum);
-
-        if(add){
-          setOpenWalletList(true);
+    const connectWalletOnPageLoad =  async () => {
+      if(localStorage?.getItem('isWalletConnected') === 'true'){
+        try{
+          await activate(injected)
+          localStorage.setItem('isWalletConnected', "true")
+          const web3 = new Web3(window.ethereum);
           dispatch(connectEthWallet(add));
           const contract = new web3.eth.Contract(BustRouterABI, BustRouterAddress);
           const contract2 = new web3.eth.Contract(BustPairABI, BustPairAddress);
           const contract3 = new web3.eth.Contract(wbnbABI, wbnbAddress);
           const contract4 = new web3.eth.Contract(bustFactoryABI, bustFactoryAddress);
-            dispatch(setrouterabi(contract));
-            dispatch(setBustPairabi(contract2));
-            dispatch(setwbnbabi(contract3));
-            dispatch(setBustFactoryabi(contract4));
-            setContract(contract);
+          dispatch(setrouterabi(contract));
+          dispatch(setBustPairabi(contract2));
+          dispatch(setwbnbabi(contract3));
+          dispatch(setBustFactoryabi(contract4));
+        }catch(err){
+          console.log(err);
         }
-          })
-          .catch((err:any) => {
-              console.log(err);
-          })
-        }
-      } 
-    }catch(err){
-      dispatch(disconnectEthWallet());
-      setOpenWalletList(false);
-      console.log(err);
+      }
     }
+    connectWalletOnPageLoad();
+  }, [])
 
-  },[])
 
   return (
     <>
@@ -75,7 +95,15 @@ const Navbar = () => {
             <LinkR to="/"><Link>Dashboard</Link></LinkR>
             <LinkR to="/swap"><Link>Exchange</Link></LinkR>
             <LinkR to="/liquidity"><Link>Liquidity</Link></LinkR>
-            <Link>{address ? address : "Connect Wallet"}</Link>
+            {
+              active?
+                <>
+                  <Link onClick={disconnect}>{"Disconnect Wallet"}</Link>
+                  <Link>{account?.slice(0,4)+ "..." +  account?.slice(-4,)}</Link>
+                </>
+              :
+                <Link onClick={connect}>{active ? account?.slice(0,4)+ "..." +  account?.slice(-4,): "connect"}</Link>
+            }
           </LinkDivMain>
         </NavbarInternal>
       </NavbarContainer>
