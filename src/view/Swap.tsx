@@ -114,25 +114,11 @@ const Swap = () => {
   const handleChangeRouter = () => {
     setSwapType(!swapType)
     if(!swapType){
-    setRouterAddress(RestToBust)
+      setRouterAddress(RestToBust)
     } else {
       setRouterAddress(BustToRest)
     }
   }
-
-  const handleInputOne = async (input: any) => {
-    if (input) {
-      setAmountA(input);
-      const result = await RouterBust.methods
-        .getAmountsOut(ethToWei(input, 18), tokenName === 'WBNB' ?( swapType === true ? RestToWBNB : WBNBToRest )   : routerAddress)
-        .call();
-      setAmountB(weiToEth(result[1], 18));
-      setType(1);
-    } else {
-      setAmountA("");
-      setAmountB("");
-    }
-  };
 
   const maxAllowance = new BigNumber(2).pow(128).minus(1);
 
@@ -211,6 +197,20 @@ const Swap = () => {
       getAllowances(amountB, amountB);
     }
   }, [amountA, amountB]);
+
+  const handleInputOne = async (input: any) => {
+    if (input) {
+      setAmountA(input);
+      const result = await RouterBust.methods
+        .getAmountsOut(ethToWei(input, 18), tokenName === 'WBNB' ?( swapType === true ? RestToWBNB : WBNBToRest )   : routerAddress)
+        .call();
+      setAmountB(weiToEth(result[1], 18));
+      setType(1);
+    } else {
+      setAmountA("");
+      setAmountB("");
+    }
+  };
 
   const handleInputTwo = async (input: any) => { 
     if (input) {
@@ -408,11 +408,9 @@ const Swap = () => {
   };
 
   useEffect(() => {
-    console.log("upper", address)
     if(account && library && address){
       (async()=> {
         await getTokenBalance();
-
       })()
     }
   }, [REST, BUST, address, addLiquidityLoading, loading, selector, account, library]);
@@ -437,7 +435,6 @@ const Swap = () => {
               <FormInputOne>
                 <FormInputOneHeading>
                   {swapType && <HeadingOne>REST</HeadingOne>}
-                  {/* <HeadingOne>{swapType === true ? "REST" : "BUST"}</HeadingOne> */}
                   {!swapType === true &&
                   <select onChange={(e) => handleDropdownChange(e.target.value)} value={tokenName}  className="select">
                   <option value="BUST">
@@ -451,6 +448,18 @@ const Swap = () => {
                   <HeadingOne>Balance:{swapType === true? parseFloat(rustBalance).toFixed(2): parseFloat(bustBalance).toFixed(2) }</HeadingOne>
                 </FormInputOneHeading>
                 <InputField placeholder="0.00" value={amountA} onChange={(e) => handleInputOne(e.target.value)}></InputField>
+
+
+                {/* {
+                  swapType &&
+                  <InputField placeholder="0.00" value={amountA} onChange={(e) => handleInputOne(e.target.value)}></InputField>
+                  // :
+                  // <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
+                }
+                {
+                  !swapType === true && 
+                  <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
+                } */}
               </FormInputOne>
               <ArrowSignDiv onClick ={() => handleChangeRouter()}>
                 <ArrowSign></ArrowSign>
@@ -471,6 +480,18 @@ const Swap = () => {
                   <HeadingOne>Balance: {swapType === true? parseFloat(bustBalance).toFixed(2) : parseFloat(rustBalance).toFixed(2)}</HeadingOne>
                 </FormInputOneHeading>
                 <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
+
+                
+                {/* {
+                  !swapType &&
+                  <InputField placeholder="0.00" value={amountA} onChange={(e) => handleInputOne(e.target.value)}></InputField>
+                  // :
+                  // <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
+                }
+                {
+                  swapType === true && 
+                  <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
+                } */}
               </FormInputOne>
               <SlipAndToleDiv>
                 <SlippageDiv>Slippage tolerance:
@@ -584,6 +605,7 @@ const ArrowSignDiv = styled.div`
     justify-content: center;
     -webkit-box-align: center;
     align-items: center;
+    cursor: pointer;
 `; 
 
 const ArrowSign = styled.div`

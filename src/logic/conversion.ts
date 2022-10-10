@@ -24,7 +24,7 @@ export const isValid = (str: any) => {
   return !/[~`!@#$%\^&*()+=\-\_\[\]\\';,/{}|\\":<>\A-Za-z\? ]/g.test(str)
 }
 
-export const validateAndTrim = (val: React.ChangeEvent<HTMLInputElement>, afterDecimal: any = 18) => {
+export const validateAndTrim = (val: any, afterDecimal: any = 18) => {
   let t = val.target.value
   if (isValid(t)) {
       val.target.value =

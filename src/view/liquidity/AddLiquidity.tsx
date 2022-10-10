@@ -5,6 +5,7 @@ import Web3 from "web3";
 import BigNumber from "bignumber.js"
 import {BustRouterAddress} from '../../abi/bustRouterABI';
 import { ToastContainer, toast } from 'react-toastify';
+import { validateAndTrim } from "../../logic/conversion";
 import { Spinner } from "../../logic/Spinner";
 import { wbnbAddress } from "../../abi/rest"; // REST
 import { bustFactoryAddress } from "../../abi/bust";  //BUST
@@ -303,7 +304,7 @@ const AddLiquidity = () => {
                   <HeadingOne>REST</HeadingOne>
                   <HeadingOne>Balance: {balancerest}</HeadingOne>
               </FormInputOneHeading>
-              <InputField placeholder="0.00" maxLength={18} value={rest ? rest : ''} onChange={(e) => { setRest(e.target.value); getQuoteBust(e.target.value) }}></InputField>
+              <InputField placeholder="0.00" value={rest ? rest : ''} onChange={(e) => { setRest(e.target.value); getQuoteBust(e.target.value) }}></InputField>
           </FormInputOne>
           <ArrowSignDiv>
               <ArrowSign></ArrowSign>
@@ -313,7 +314,7 @@ const AddLiquidity = () => {
                   <HeadingOne>BUST</HeadingOne>
                   <HeadingOne>Balance: {balancebust}</HeadingOne>
               </FormInputOneHeading>
-              <InputField placeholder="0.00" maxLength={18} value={bust ? bust : ''} onChange={(e) => { setBust(e.target.value); getQuoteRest(e.target.value) }}></InputField>
+              <InputField placeholder="0.00" value={bust ? bust : ''} onChange={(e) => { setBust(e.target.value); getQuoteRest(e.target.value) }}></InputField>
           </FormInputOne>
           <SlipAndToleDiv>
               <SlippageDiv>Slippage tolerance:

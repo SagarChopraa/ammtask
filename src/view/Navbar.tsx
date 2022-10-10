@@ -61,18 +61,42 @@ const Navbar = () => {
   }, [])
 
   useEffect(() => {
-    if(library && account) {
-      dispatch(connectEthWallet(account));
-      const contract = new library.eth.Contract(BustRouterABI, BustRouterAddress);
-      const contract2 = new library.eth.Contract(BustPairABI, BustPairAddress);
-      const contract3 = new library.eth.Contract(wbnbABI, wbnbAddress);
-      const contract4 = new library.eth.Contract(bustFactoryABI, bustFactoryAddress);
-      dispatch(setrouterabi(contract));
-      dispatch(setBustPairabi(contract2));
-      dispatch(setwbnbabi(contract3));
-      dispatch(setBustFactoryabi(contract4));
+  const targetNetworkId = '0x61';
+  const checkNetwork = async () => {
+    if (window.ethereum) {
+      const currentChainId = await window.ethereum.request({
+        method: 'eth_chainId',
+      });
+      console.log(currentChainId)
+      if (currentChainId == targetNetworkId) {
+        if(library && account) {
+          dispatch(connectEthWallet(account));
+          const contract = new library.eth.Contract(BustRouterABI, BustRouterAddress);
+          const contract2 = new library.eth.Contract(BustPairABI, BustPairAddress);
+          const contract3 = new library.eth.Contract(wbnbABI, wbnbAddress);
+          const contract4 = new library.eth.Contract(bustFactoryABI, bustFactoryAddress);
+          dispatch(setrouterabi(contract));
+          dispatch(setBustPairabi(contract2));
+          dispatch(setwbnbabi(contract3));
+          dispatch(setBustFactoryabi(contract4));
+        }
+      }else{
+        const switchNetwork = async () => {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: targetNetworkId }],
+          });
+          window.location.reload();
+        };
+        switchNetwork();
+      }
     }
+  };
+  checkNetwork();
   }, [library, account])
+
+ 
+
 
 
   return (
