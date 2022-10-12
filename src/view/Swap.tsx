@@ -7,7 +7,7 @@ import Web3 from "web3";
 import { useWeb3React } from "@web3-react/core"
 import BigNumber from "bignumber.js"
 import { Spinner } from "../logic/Spinner";
-import {BustRouterAddress} from '../abi/bustRouterABI';
+import { BustRouterAddress } from '../abi/bustRouterABI';
 import { wbnbABI, wbnbAddress } from "../abi/rest"; // REST
 import { bustFactoryAddress } from "../abi/bust";  //BUST
 import { convertToMax, convertToMin, ethToWei, weiToEth } from "../logic/conversion";
@@ -100,20 +100,23 @@ const Swap = () => {
 
 
   /** function to get balance of tokens */
-    const getTokenBalance = async () => {
-      try {
-        const Rest = await REST.methods.balanceOf(address).call();
-        setRustBalance(weiToEth(Rest, 18));
-        const bust = await BUST.methods.balanceOf(address).call();
-        setBustBalance(weiToEth(bust, 18));
-      } catch (err) {
-        console.log(err);
-      }
-    };
-  
+  const getTokenBalance = async () => {
+    try {
+      const Rest = await REST.methods.balanceOf(address).call();
+      setRustBalance(weiToEth(Rest, 18));
+      const bust = await BUST.methods.balanceOf(address).call();
+      setBustBalance(weiToEth(bust, 18));
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   const handleChangeRouter = () => {
+    const amountC = amountA;
+    setAmountA(amountB);
+    setAmountB(amountC);
     setSwapType(!swapType)
-    if(!swapType){
+    if (!swapType) {
       setRouterAddress(RestToBust)
     } else {
       setRouterAddress(BustToRest)
@@ -126,16 +129,16 @@ const Swap = () => {
     try {
       setLoading(true);
       const approvebusd = await REST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
-      .send({ from: address })
-      .on("receipt", (receipt: any) => {
-        restSucess();
-        setIsApprovedRest(true);
-        setLoading(false);
-      }).on("error", (error: any, receipt: any) => {
-        restfailed();
-        setIsApprovedRest(false);
-        setLoading(false);
-      });
+        .send({ from: address })
+        .on("receipt", (receipt: any) => {
+          restSucess();
+          setIsApprovedRest(true);
+          setLoading(false);
+        }).on("error", (error: any, receipt: any) => {
+          restfailed();
+          setIsApprovedRest(false);
+          setLoading(false);
+        });
     } catch (err) {
       console.log(err);
       setLoading(false);
@@ -147,16 +150,16 @@ const Swap = () => {
     try {
       setLoading(true);
       const approvebust = await BUST.methods.approve(BustRouterAddress, ethToWei(maxAllowance.toString()))
-      .send({ from: address })
-      .on("receipt", (receipt: any) => {
-        bustSuccess();
-        setIsApprovedBust(true);
-        setLoading(false);
-      }).on("error", (error: any, receipt: any) => {
-        bustfailed();
-        setIsApprovedBust(false);
-        setLoading(false);
-      });
+        .send({ from: address })
+        .on("receipt", (receipt: any) => {
+          bustSuccess();
+          setIsApprovedBust(true);
+          setLoading(false);
+        }).on("error", (error: any, receipt: any) => {
+          bustfailed();
+          setIsApprovedBust(false);
+          setLoading(false);
+        });
     } catch (err) {
       console.log(err);
       setLoading(false);
@@ -202,7 +205,7 @@ const Swap = () => {
     if (input) {
       setAmountA(input);
       const result = await RouterBust.methods
-        .getAmountsOut(ethToWei(input, 18), tokenName === 'WBNB' ?( swapType === true ? RestToWBNB : WBNBToRest )   : routerAddress)
+        .getAmountsOut(ethToWei(input, 18), tokenName === 'WBNB' ? (swapType === true ? RestToWBNB : WBNBToRest) : routerAddress)
         .call();
       setAmountB(weiToEth(result[1], 18));
       setType(1);
@@ -212,87 +215,87 @@ const Swap = () => {
     }
   };
 
-  const handleInputTwo = async (input: any) => { 
+  const handleInputTwo = async (input: any) => {
     if (input) {
       setAmountB(input);
       const result = await RouterBust.methods
-        .getAmountsIn(ethToWei(input, 18), tokenName === 'WBNB' ? ( swapType === true ? RestToWBNB : WBNBToRest )   : routerAddress)
+        .getAmountsIn(ethToWei(input, 18), tokenName === 'WBNB' ? (swapType === true ? RestToWBNB : WBNBToRest) : routerAddress)
         .call();
       setAmountA(weiToEth(result[0], 18));
       setType(2);
     } else {
       setAmountA("");
       setAmountB("");
-    } 
+    }
   };
 
   const swapExactTokensForTokens = async () => {
-    try{
+    try {
       setLoading(true);
       const amountOutMin = convertToMin(amountB, slippage);
       const ExactTokensForTokens = await RouterBust.methods
-      .swapExactTokensForTokens(
-        ethToWei(amountA, 18),
-        amountOutMin,
-        routerAddress, //RestToBust
-        address,
-        Date.now() + (deadline * 60)
-      )
-      .send({from: address})
-      .on("receipt", (receipt: any) => {
+        .swapExactTokensForTokens(
+          ethToWei(amountA, 18),
+          amountOutMin,
+          routerAddress, //RestToBust
+          address,
+          Date.now() + (deadline * 60)
+        )
+        .send({ from: address })
+        .on("receipt", (receipt: any) => {
           setAmountA("");
           setAmountB("");
           swapSuccess();
           setLoading(false);
-      }).on("error", (error: any, receipt: any) => {
+        }).on("error", (error: any, receipt: any) => {
           setAmountA("");
           setAmountB("");
           swapFailed();
           setLoading(false);
-      });
+        });
       setLoading(false);
-      }catch(err) {
-        console.log(err);
-        setLoading(false);
+    } catch (err) {
+      console.log(err);
+      setLoading(false);
     }
   }
 
   const swapTokensForExactTokens = async () => {
-    try{
+    try {
       setLoading(true);
       const amountInMax = convertToMax(amountA, slippage);
       const ExactTokensForTokens = await RouterBust.methods
-      .swapTokensForExactTokens(
-        ethToWei(amountB, 18),
-        amountInMax,
-        routerAddress, //RestToBust
-        address,
-        Date.now() + (deadline * 60)
-      )
-      .send({from: address})
-      .on("receipt", (receipt: any) => {
+        .swapTokensForExactTokens(
+          ethToWei(amountB, 18),
+          amountInMax,
+          routerAddress, //RestToBust
+          address,
+          Date.now() + (deadline * 60)
+        )
+        .send({ from: address })
+        .on("receipt", (receipt: any) => {
           setAmountA("");
           setAmountB("");
           swapSuccess();
           setLoading(false);
-      }).on("error", (error: any, receipt: any) => {
+        }).on("error", (error: any, receipt: any) => {
           setAmountA("");
           setAmountB("");
           swapFailed();
           setLoading(false);
-      });
+        });
       setLoading(false);
-      }catch(err) {
-        console.log(err);
-        setLoading(false);
+    } catch (err) {
+      console.log(err);
+      setLoading(false);
     }
   }
 
-  const swapExactTokensForETH = async () =>{
+  const swapExactTokensForETH = async () => {
     setLoading(true);
     try {
       const amountOutMin = convertToMin(amountB, slippage);
-      const dl = Date.now() + ( deadline * 60 );
+      const dl = Date.now() + (deadline * 60);
       const ExactTokensForTokens = await RouterBust.methods
         .swapExactTokensForETH(
           ethToWei(amountA),
@@ -323,7 +326,7 @@ const Swap = () => {
     setLoading(true);
     try {
       const amountOutMin = convertToMin(amountB, slippage);
-      const dl = Date.now() + ( deadline * 60 );
+      const dl = Date.now() + (deadline * 60);
       const ExactTokensForTokens = await RouterBust.methods
         .swapExactETHForTokens(
           amountOutMin,
@@ -355,7 +358,7 @@ const Swap = () => {
     setLoading(true);
     try {
       const amountOutMin = convertToMin(amountB, slippage);
-      const dl = Date.now() + ( deadline * 60 );
+      const dl = Date.now() + (deadline * 60);
       const ExactTokensForTokens = await RouterBust.methods
         .swapETHForExactTokens(
           amountOutMin,
@@ -381,35 +384,35 @@ const Swap = () => {
       console.log(err);
     }
   };
-  
+
   const handleSwap = () => {
     setLoading(true);
     if (type === 1) {
-      if(tokenName === 'WBNB' ){
-        if(swapType === true){
+      if (tokenName === 'WBNB') {
+        if (swapType === true) {
           swapExactTokensForETH()
-        }else{
+        } else {
           swapExactETHForTokens()
         }
-      }else{
+      } else {
         swapExactTokensForTokens();
       }
     } else {
-      if(tokenName === 'WBNB' ){
-        if(swapType === true){
+      if (tokenName === 'WBNB') {
+        if (swapType === true) {
           swapExactTokensForETH()
-        } else{
+        } else {
           swapETHForExactTokens();
         }
-      }else{
+      } else {
         swapTokensForExactTokens();
       }
     }
   };
 
   useEffect(() => {
-    if(account && library && address){
-      (async()=> {
+    if (account && library && address) {
+      (async () => {
         await getTokenBalance();
       })()
     }
@@ -436,73 +439,59 @@ const Swap = () => {
                 <FormInputOneHeading>
                   {swapType && <HeadingOne>REST</HeadingOne>}
                   {!swapType === true &&
-                  <select onChange={(e) => handleDropdownChange(e.target.value)} value={tokenName}  className="select">
-                  <option value="BUST">
-                    BUST
-                  </option>
-                  <option value="WBNB">
-                    WBNB
-                  </option>
-                  </select>
-                }
-                  <HeadingOne>Balance:{swapType === true? parseFloat(rustBalance).toFixed(2): parseFloat(bustBalance).toFixed(2) }</HeadingOne>
+                    <select onChange={(e) => handleDropdownChange(e.target.value)} value={tokenName} className="select">
+                      <option value="BUST">
+                        BUST
+                      </option>
+                      <option value="WBNB">
+                        WBNB
+                      </option>
+                    </select>
+                  }
+                  <HeadingOne>Balance:{swapType === true ? parseFloat(rustBalance).toFixed(2) : parseFloat(bustBalance).toFixed(2)}</HeadingOne>
                 </FormInputOneHeading>
-                <InputField placeholder="0.00" value={amountA} onChange={(e) => handleInputOne(e.target.value)}></InputField>
-
-
-                {/* {
-                  swapType &&
-                  <InputField placeholder="0.00" value={amountA} onChange={(e) => handleInputOne(e.target.value)}></InputField>
-                  // :
-                  // <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
-                }
-                {
-                  !swapType === true && 
-                  <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
-                } */}
+                <InputField placeholder="0.00" value={amountA}
+                  onChange={(e) => handleInputOne(e.target.value)}>
+                </InputField>
+                {/* <InputField placeholder="0.00" value={swapType ? amountA : amountB}
+                  onChange={(e) => handleInputOne(e.target.value)}>
+                </InputField> */}
               </FormInputOne>
-              <ArrowSignDiv onClick ={() => handleChangeRouter()}>
+              <ArrowSignDiv onClick={() => handleChangeRouter()}>
                 <ArrowSign></ArrowSign>
               </ArrowSignDiv>
               <FormInputOne>
                 <FormInputOneHeading>
-                {!swapType && <HeadingOne>REST</HeadingOne>}
+                  {!swapType && <HeadingOne>REST</HeadingOne>}
                   {swapType === true &&
-                  <select onChange={(e) => handleDropdownChange(e.target.value)} value={tokenName} className="select"> 
-                  <option value="BUST">
-                    BUST
-                  </option>
-                  <option value="WBNB">
-                    WBNB
-                  </option>
-                  </select>
-                }
-                  <HeadingOne>Balance: {swapType === true? parseFloat(bustBalance).toFixed(2) : parseFloat(rustBalance).toFixed(2)}</HeadingOne>
+                    <select onChange={(e) => handleDropdownChange(e.target.value)} value={tokenName} className="select">
+                      <option value="BUST">
+                        BUST
+                      </option>
+                      <option value="WBNB">
+                        WBNB
+                      </option>
+                    </select>
+                  }
+                  <HeadingOne>Balance: {swapType === true ? parseFloat(bustBalance).toFixed(2) : parseFloat(rustBalance).toFixed(2)}</HeadingOne>
                 </FormInputOneHeading>
-                <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
-
-                
-                {/* {
-                  !swapType &&
-                  <InputField placeholder="0.00" value={amountA} onChange={(e) => handleInputOne(e.target.value)}></InputField>
-                  // :
-                  // <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
-                }
-                {
-                  swapType === true && 
-                  <InputField placeholder="0.00" value={amountB} onChange={(e) => handleInputTwo(e.target.value)}></InputField>
-                } */}
+                <InputField placeholder="0.00" value={amountB}
+                  onChange={(e) => handleInputTwo(e.target.value)}>
+                </InputField>
+                {/* <InputField placeholder="0.00" value={!swapType ? amountA : amountB}
+                  onChange={(e) => handleInputTwo(e.target.value)}>
+                </InputField> */}
               </FormInputOne>
               <SlipAndToleDiv>
                 <SlippageDiv>Slippage tolerance:
-                  <ValueButton onClick={() => dispatch(decrementSlippage())} disabled={ slippage <= 0.2 }>-</ValueButton> 
+                  <ValueButton onClick={() => dispatch(decrementSlippage())} disabled={slippage <= 0.2}>-</ValueButton>
                   {slippage.toFixed(1)} %  {" "}
-                  <ValueButton onClick={() => dispatch(incrementSlippage())} disabled={ slippage >= 2 }>+</ValueButton>
+                  <ValueButton onClick={() => dispatch(incrementSlippage())} disabled={slippage >= 2}>+</ValueButton>
                 </SlippageDiv>
-                <SlippageDiv>Transaction deadline: 
-                  <ValueButton onClick={() => dispatch(decrementDeadline())} disabled={deadline<=15}>-</ValueButton> 
+                <SlippageDiv>Transaction deadline:
+                  <ValueButton onClick={() => dispatch(decrementDeadline())} disabled={deadline <= 15}>-</ValueButton>
                   {deadline} min {"  "}
-                  <ValueButton onClick={() => dispatch(incrementDeadline())} disabled={deadline>=60}>+</ValueButton>
+                  <ValueButton onClick={() => dispatch(incrementDeadline())} disabled={deadline >= 60}>+</ValueButton>
                 </SlippageDiv>
               </SlipAndToleDiv>
               <BusdAndBustDiv>
@@ -510,9 +499,9 @@ const Swap = () => {
                 <SlippageDiv>1BUST = {initialREST} REST</SlippageDiv>
               </BusdAndBustDiv>
               <SwapButtonDiv>
-              {(!isApprovedRest || !isApprovedBust) && <SwapButton onClick={()=>{approveREST();approveBUST();}} disabled={!amountA}>{loading ? <Spinner/> : "Approve"}</SwapButton>}
+                {(!isApprovedRest || !isApprovedBust) && <SwapButton onClick={() => { approveREST(); approveBUST(); }} disabled={!amountA}>{loading ? <Spinner /> : "Approve"}</SwapButton>}
                 <SwapButton onClick={() => handleSwap()} disabled={!(parseFloat(rustBalance) > parseFloat(amountA)) ||
-                !(parseFloat(bustBalance) > parseFloat(amountB)) || !isApprovedBust && !isApprovedRest}>{loading ? <Spinner/> : "Swap"}</SwapButton>
+                  !(parseFloat(bustBalance) > parseFloat(amountB)) || !isApprovedBust && !isApprovedRest || loading}>{loading ? <Spinner /> : "Swap"}</SwapButton>
               </SwapButtonDiv>
             </FormContainerMain>
           </SwapInterDiv>
@@ -585,7 +574,7 @@ const FormInputOneHeading = styled.div`
       outline: none;
       background-color: rgb(255, 249, 240);
     }
-`; 
+`;
 
 const HeadingOne = styled.p`
   font-size: 16px;
@@ -606,7 +595,7 @@ const ArrowSignDiv = styled.div`
     -webkit-box-align: center;
     align-items: center;
     cursor: pointer;
-`; 
+`;
 
 const ArrowSign = styled.div`
   background-image: url("https://anmfmt.web.app/static/media/arrow.167534cd.svg");
@@ -628,7 +617,7 @@ const SlipAndToleDiv = styled.div`
 const SlippageDiv = styled.div`
   font-size: 15px;
   margin-top: 10px;
-`; 
+`;
 
 const BusdAndBustDiv = styled.div`
     padding: 10px;

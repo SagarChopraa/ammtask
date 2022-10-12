@@ -67,7 +67,6 @@ const Navbar = () => {
       const currentChainId = await window.ethereum.request({
         method: 'eth_chainId',
       });
-      console.log(currentChainId)
       if (currentChainId == targetNetworkId) {
         if(library && account) {
           dispatch(connectEthWallet(account));
